@@ -156,6 +156,21 @@ if __name__ == "__main__":
         from transformers.models.llama.modeling_llama import (
             apply_rotary_pos_emb as hf_apply,
         )
+        q_hf, k_hf = hf_apply(
+            q.float(),
+            k.float(),
+            rope.cos[:S].unsqueeze(0), # [1, S, D] -> unsqueeze(1) -> [1, 1, S, D] 广播对齐 q/k 维度
+            rope.sin[:S].unsqueeze(0),
+        )
+        max_diff = (q_hf - q_r.float()).abs().max().item()
+        print(f"\n与 HF apply_rotary_pos_emb 最大误差: {max_diff:.2e} (应 < 1e-5)")
     except (ImportError) as e:
         print(f"\n[skip] 跳过 HF 对齐测试: {type(e).__name__}")
         
+    # --- 校验 5: 反向传播正常（无参数，梯度应流回 q）---
+    loss = q_r.sum()
+    loss.backward()
+    print(f"q 梯度形状: {q.grad.shape} (应 [2, 4, 8, 64])")
+    print(f"cos/sin 是 buffer（非参数）: {sum(1 for _ in rope.parameters())} 个参数 (应为 0)")
+
+    print("\n✅ RoPE 自校验通过")
