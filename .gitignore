@@ -9,6 +9,3 @@ logs/
 
 # IDE / 编辑器
 .vscode/
-
-# 操作系统
-.DS_Store
