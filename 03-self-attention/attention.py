@@ -3,6 +3,7 @@ from __future__ import annotations
 import math 
 
 import torch 
+# torch.set_printoptions(precision=3, sci_mode=False) # 打印结果 将科学记数法改成小数
 import torch.nn as nn
 import torch.nn.functional as F
 
@@ -78,17 +79,17 @@ class RotaryEmbedding(nn.Module):
 
 
 # ------ 自注意力机制（Self-Attention）------
-def repeat_kv(x: torch.Tensor, n_req: int) -> torch.Tensor:
-    """GQA: 把 kv 头重复 n_req 次，扩展到与 q 头数一致。
+def repeat_kv(x: torch.Tensor, n_rep: int) -> torch.Tensor:
+    """GQA: 把 kv 头重复 n_rep 次，扩展到与 q 头数一致。
     
-    x: [batch, kv_heads, seq, head_dim] -> [batch, kv_heads*n_req, seq, head_dim]
+    x: [batch, kv_heads, seq, head_dim] -> [batch, kv_heads*n_rep, seq, head_dim]
     用 expand (不复制内存), 重复只是视图。
     """
     batch, kv_heads, seq, head_dim = x.shape 
-    if n_req == 1:
+    if n_rep == 1:
         return x 
-    x = x[:, :, None, :, :].expand(batch, kv_heads, n_req, seq, head_dim)
-    return x.reshape(batch, kv_heads * n_req, seq, head_dim)
+    x = x[:, :, None, :, :].expand(batch, kv_heads, n_rep, seq, head_dim)
+    return x.reshape(batch, kv_heads * n_rep, seq, head_dim)
 
 
 class MultiHeadAttention(nn.Module):
@@ -131,7 +132,7 @@ class MultiHeadAttention(nn.Module):
 
         b, s, _ = x.shape 
 
-        # 1) 投影 + 切头: [B, S, H*D] -> [B, H, S, D]
+        # 1) 投影 + 切头: [B, S, H*D] -> [B, S, H, D] -> [B, H, S, D]
         q = self.q_proj(x).view(b, s, self.num_heads, self.head_dim).transpose(1, 2) 
         k = self.k_proj(x).view(b, s, self.num_kv_heads, self.head_dim).transpose(1, 2)
         v = self.v_proj(x).view(b, s, self.num_kv_heads, self.head_dim).transpose(1, 2)
@@ -145,7 +146,7 @@ class MultiHeadAttention(nn.Module):
         k = repeat_kv(k, self.n_rep) # [B, H, S, D]
         v = repeat_kv(v, self.n_rep)
 
-        # 4) 缩放点积注意力分数
+        # 4) 缩放点积注意力分数 
         attn_weights = torch.matmul(q, k.transpose(-2, -1)) / math.sqrt(self.head_dim)
 
         # 5) causal 掩码 （decoder-only) : 上三角 -inf
@@ -157,12 +158,12 @@ class MultiHeadAttention(nn.Module):
         attn_weights = F.softmax(attn_weights, dim=-1, dtype=torch.float32).to(q.dtype) # softmax计算敏感, 提升精度计算后再转回去(原weights可为fp16/bf16)
         out = torch.matmul(attn_weights, v) # [B, H, S, D]
 
-        # 7) 合并头 + 输出投影
+        # 7) 合并头 + 输出投影 [B, H, S, D] -> [B, S, H, D] -> [B, S, H*D]
         out = out.transpose(1, 2).contiguous().view(b, s, self.num_heads * self.head_dim)
         return self.o_proj(out)
 
 if __name__ == "__main__":
-    torch.manual_seed(0)
+    torch.manual_seed(0) # 设置 PyTorch 随机种子（CPU），保证实验可复现
     H, HEADS, KV, S = 512, 8, 2, 6 
 
     # --- 校验 1： 打印 MHA & GQA 结果 --- 
@@ -209,6 +210,9 @@ if __name__ == "__main__":
             attention_bias=False,
             num_hidden_layers=1,
         )
+        # 加上这一行，指定用eager（可选值：`"eager"`（朴素手写版） / `"sdpa"`（PyTorch SDPA 加速） / `"flash_attention_2"`）
+        cfg._attn_implementation = "eager"
+
         hf_attn = LlamaAttention(cfg, layer_idx=0)
         # 权重复制：把我们实现的权重赋值给HF模型
         with torch.no_grad():
@@ -219,23 +223,28 @@ if __name__ == "__main__":
 
         # 构造position_ids和RoPE所带cos/sin
         b, s = x.shape[0], x.shape[1]
-        position_ids = torch.arange(s, device=x.device)[None, :].expand(b, s)
+        position_ids = torch.arange(s,device=x.device)[None, :].expand(b, s)
 
-        # HF 前向（自带 causal mask）
-        cos, sin = gqa.rope.cos[:s].unsqueeze(0), gqa.rope.sin[:s].unsqueeze(0)
+        # HF 前向（默认是全注意力）
+        cos = gqa.rope.cos[:s].unsqueeze(0).expand(b, s, gqa.head_dim)
+        sin = gqa.rope.sin[:s].unsqueeze(0).expand(b, s, gqa.head_dim)
         pos_emb = (cos, sin)
+
+        causal_mask = torch.triu(torch.full((s, s), float("-inf"), device=x.device), diagonal=1)
+        causal_mask = causal_mask[None, None, :, :].expand(b, 1, s, s)
         with torch.no_grad():
             hf_out, _ = hf_attn(
                 x.detach(),
                 position_embeddings=pos_emb,
-                attention_mask=None
+                attention_mask=causal_mask
             )
 
-        # 我们自己实现的前向（同样带 causal mask）
+        # 我们自己实现的前向（默认是因果注意力）
         with torch.no_grad():
             my_out = gqa(
                 x.detach(),
-                positions=position_ids
+                positions=position_ids,
+                attention_mask=None
             )
 
         max_diff = (hf_out - my_out).abs().max().item()
