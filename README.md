@@ -16,9 +16,9 @@
 | 01-backpropagation-from-scratch | ✓ | [](#) | [](#) |
 | 02-rotary-position-embedding | ✓ | [旋转位置编码-理论篇](https://www.xiaohongshu.com/explore/6ad1ba3a00000000150052f8?xsec_token=ABQLRD8o_3HJsGCDwgRpJa1bf-p-8FKj3DAtyvIdiEeIw=&xsec_source=pc_user) | [旋转位置编码-代码篇](https://www.xiaohongshu.com/explore/6ad31eb3000000001a0211d2?xsec_token=ABKTNiA1JoS16skb7UebVOv_Rkrq_uTDf72VRh1ho_Ej4=&xsec_source=pc_user) |
 | 03-self-attention | ✓ | [自注意力机制-理论篇](https://www.xiaohongshu.com/explore/6ad70acf000000002f03237d?xsec_token=ABj7eZjkQn7TJR4pfqLdYHEmtDECd8NPpmPz8YVDwI5cs=&xsec_source=pc_user) | [自注意力机制-代码篇](https://www.xiaohongshu.com/explore/6ad89540000000002c03b9e5?xsec_token=ABLnasY4rP1yhaEgpoGOe3pPNWXa2oSV_5fbys4lX9pGo=&xsec_source=pc_user) |
-| 04-rms-norm | ☐ | [](#) | [](#) |
-| swiglu | ☐ | [](#) | [](#) |
-| optimizer-adamw | ☐ | [](#) | [](#) |
+| 04-rms-norm | ✓ | [均方根层归一化-理论篇](https://www.xiaohongshu.com/explore/6ae176b400000000340245ec?xsec_token=ABEUFAX6mC_j6-TeXgzNjC4bMFgzzrJJIDSGeHB6JS3mo=&xsec_source=pc_user) | [](#) |
+| 05-swiglu | ☐ | [](#) | [](#) |
+| 06-optimizer-adamw | ☐ | [](#) | [](#) |
 
 ## 🚧 路线图（持续更新中）
 > 按"由底层到工程、由单卡到多卡、由训练到推理"的顺序整理，覆盖大模型训练 / 推理 / AI Infra 的一些基础知识。
