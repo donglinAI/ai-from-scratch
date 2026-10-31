@@ -9,7 +9,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # -------------------------- 模型定义 --------------------------
 class BadReluNet(nn.Module):
-    """对照组：Xavier初始化 + 无BN + ReLU"""
+    """对照组：nn.Linear默认初始化 + 无BN + ReLU"""
     def __init__(self, in_dim=16, hidden_dim=128, out_dim=2):
         super().__init__()
         self.net = nn.Sequential(
@@ -19,11 +19,11 @@ class BadReluNet(nn.Module):
             nn.ReLU(),
             nn.Linear(hidden_dim, out_dim)
         )
-        # Xavier初始化
-        for m in self.net:
-            if isinstance(m, nn.Linear):
-                nn.init.xavier_normal_(m.weight)
-                nn.init.zeros_(m.bias)
+        # # Xavier初始化
+        # for m in self.net:
+        #     if isinstance(m, nn.Linear):
+        #         nn.init.xavier_normal_(m.weight)
+        #         nn.init.zeros_(m.bias)
     def forward(self, x):
         return self.net(x)
     def get_all_preact(self, x):
@@ -39,7 +39,7 @@ class BadReluNet(nn.Module):
 
 
 class OptimizedReluNet(nn.Module):
-    """优化组：He初始化 + BN + ReLU"""
+    """优化组：Kaiming正态初始化 + BN + ReLU"""
     def __init__(self, in_dim=16, hidden_dim=128, out_dim=2):
         super().__init__()
         self.net = nn.Sequential(
@@ -137,27 +137,3 @@ for step in range(train_steps):
 
     if step % 5 == 0:
         print(f"{step:<5} | {dead_bad:<8d} | {act_bad:<12.4f} | {dead_opt:<8d} | {act_opt:<12.4f} | {loss_bad:<10.4f} | {loss_opt:<10.4f}")
-
-# 输出结果
-# step  | bad_dead | bad_act_mean | opt_dead | opt_act_mean | loss_bad   | loss_opt  
-# --------------------------------------------------------------------------------
-# 0     | 2        | 0.4764       | 0        | 0.4715       | 0.7204     | 0.8336    
-# 5     | 14       | 0.3829       | 0        | 0.4838       | 0.7109     | 0.8668    
-# 10    | 34       | 0.3788       | 0        | 0.4784       | 0.6940     | 0.7518    
-# 15    | 52       | 0.3648       | 0        | 0.4695       | 0.6904     | 0.7777    
-# 20    | 70       | 0.3501       | 0        | 0.4802       | 0.6977     | 0.7099    
-# 25    | 73       | 0.3268       | 0        | 0.4667       | 0.6955     | 0.7072    
-# 30    | 76       | 0.3259       | 0        | 0.4643       | 0.6959     | 0.7349    
-# 35    | 81       | 0.2741       | 0        | 0.4715       | 0.6943     | 0.7324    
-# 40    | 86       | 0.2841       | 0        | 0.4729       | 0.6943     | 0.7331    
-# 45    | 83       | 0.2885       | 0        | 0.4621       | 0.6934     | 0.6905    
-# 50    | 84       | 0.2874       | 0        | 0.4631       | 0.6941     | 0.7037    
-# 55    | 89       | 0.2931       | 0        | 0.4573       | 0.6923     | 0.7093    
-# 60    | 87       | 0.2909       | 0        | 0.4538       | 0.6967     | 0.6921    
-# 65    | 84       | 0.2893       | 0        | 0.4525       | 0.6921     | 0.7092    
-# 70    | 85       | 0.2879       | 0        | 0.4519       | 0.6928     | 0.6978    
-# 75    | 89       | 0.2534       | 0        | 0.4481       | 0.6949     | 0.7053    
-# 80    | 91       | 0.2788       | 0        | 0.4562       | 0.6938     | 0.7051    
-# 85    | 87       | 0.2811       | 0        | 0.4410       | 0.6931     | 0.7022    
-# 90    | 89       | 0.2946       | 0        | 0.4466       | 0.6937     | 0.7006    
-# 95    | 88       | 0.2975       | 0        | 0.4496       | 0.6910     | 0.7018  
