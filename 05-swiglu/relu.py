@@ -35,9 +35,15 @@ if __name__ == "__main__":
     relu = MyReLUModule()
 
     x = torch.tensor([-2.0, -0.0, 0.0, 1.5, 3.0], requires_grad=True)
+    # 自己实现
     y = relu(x)
     loss = y.sum()
     loss.backward()
+
+    # 官方实现
+    # y = nn.ReLU()(x)
+    # loss = y.sum()
+    # loss.backward()
 
     print("x            : ", x.data)
     print("ReLU output y: ", y.data)
