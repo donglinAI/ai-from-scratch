@@ -18,7 +18,7 @@
 | 03-self-attention | ✓ | [自注意力机制-理论篇](https://www.xiaohongshu.com/explore/6ad70acf000000002f03237d?xsec_token=ABj7eZjkQn7TJR4pfqLdYHEmtDECd8NPpmPz8YVDwI5cs=&xsec_source=pc_user) | [自注意力机制-代码篇](https://www.xiaohongshu.com/explore/6ad89540000000002c03b9e5?xsec_token=ABLnasY4rP1yhaEgpoGOe3pPNWXa2oSV_5fbys4lX9pGo=&xsec_source=pc_user) |
 | 04-rms-norm | ✓ | [均方根层归一化-理论篇](https://www.xiaohongshu.com/explore/6ae176b400000000340245ec?xsec_token=ABEUFAX6mC_j6-TeXgzNjC4bMFgzzrJJIDSGeHB6JS3mo=&xsec_source=pc_user) | [](#) |
 | 05-relu | ✓ | [ReLU激活函数-理论篇](https://www.xiaohongshu.com/explore/6ae5cd66000000001200b47b?xsec_token=ABZDUmuy1o3zs5tBuIW9VNi-2yYAlEoQTd2zymzTPHmpU=&xsec_source=pc_user) | [](#) |
-| 06-swiglu | ☐ | [](#) | [](#) |
+| 06-swiglu | ✓ | [](#) | [](#) |
 | 07-optimizer-adamw | ☐ | [](#) | [](#) |
 | 08-transformer | ☐ | [](#) | [](#) |
 
