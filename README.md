@@ -18,9 +18,10 @@
 | 03-self-attention | ✓ | [自注意力机制-理论篇](https://www.xiaohongshu.com/explore/6ad70acf000000002f03237d?xsec_token=ABj7eZjkQn7TJR4pfqLdYHEmtDECd8NPpmPz8YVDwI5cs=&xsec_source=pc_user) | [自注意力机制-代码篇](https://www.xiaohongshu.com/explore/6ad89540000000002c03b9e5?xsec_token=ABLnasY4rP1yhaEgpoGOe3pPNWXa2oSV_5fbys4lX9pGo=&xsec_source=pc_user) |
 | 04-rms-norm | ✓ | [均方根层归一化-理论篇](https://www.xiaohongshu.com/explore/6ae176b400000000340245ec?xsec_token=ABEUFAX6mC_j6-TeXgzNjC4bMFgzzrJJIDSGeHB6JS3mo=&xsec_source=pc_user) | [](#) |
 | 05-relu | ✓ | [ReLU激活函数-理论篇](https://www.xiaohongshu.com/explore/6ae5cd66000000001200b47b?xsec_token=ABZDUmuy1o3zs5tBuIW9VNi-2yYAlEoQTd2zymzTPHmpU=&xsec_source=pc_user) | [](#) |
-| 06-swiglu | ✓ | [](#) | [](#) |
-| 07-optimizer-adamw | ☐ | [](#) | [](#) |
-| 08-transformer | ☐ | [](#) | [](#) |
+| 06-swiglu | ✓ | [SwiGLU激活函数-理论篇](https://www.xiaohongshu.com/explore/6ae730070000000006021a0b?xsec_token=YBHEE_PYJMEN8q-eGa1fBAl3RL1S1MyRByzo4coXDd14w=&xsec_source=pc_creatormng) | [](#) |
+| 07-optimizer-adamw | ✓ | [AdamW优化器-理论篇](https://www.xiaohongshu.com/explore/6ae81e580000000019002e2c?xsec_token=YBodqmf6y_frpJyAv4SP0qiiCCW5_hd38xbPaCI5fA4Qs=&xsec_source=pc_creatormng) | [](#) |
+| 08-lr-scheduler | ☐ | [](#) | [](#) |
+| 09-transformer | ☐ | [](#) | [](#) |
 
 ## 🚧 路线图（持续更新中）
 > 按"由底层到工程、由单卡到多卡、由训练到推理"的顺序整理，覆盖大模型训练 / 推理 / AI Infra 的一些基础知识。
