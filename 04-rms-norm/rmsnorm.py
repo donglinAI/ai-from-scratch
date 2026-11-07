@@ -37,7 +37,8 @@ class SimpleSublayer(nn.Module):
         super().__init__()
         self.w1 = nn.Linear(dim, 4 * dim, bias=False)
         self.w2 = nn.Linear(4 * dim, dim, bias=False)
-        self.act = nn.GELU()
+        # self.act = nn.GELU()
+        self.act = nn.SiLU()
         # 标准零均值初始化
         nn.init.normal_(self.w1.weight, std=0.02)
         nn.init.normal_(self.w2.weight, std=0.02)
@@ -49,7 +50,7 @@ class PreNormBlock(nn.Module):
     # x_{l+1} = x_{l} + Sublayer(Norm(x_{l}))
     def __init__(self, dim):
         super().__init__()
-        self.norm = LayerNorm(dim)
+        self.norm = RMSNorm(dim)
         self.sub = SimpleSublayer(dim)
 
     def forward(self, x):
