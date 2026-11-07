@@ -124,5 +124,5 @@ if __name__ == "__main__":
     ax1.grid(True)
 
     plt.tight_layout()
-    plt.savefig("residual_mean_train_layer.png", dpi=300)
+    plt.savefig("./images/residual_mean_train_layer.png", dpi=300)
     plt.close()
