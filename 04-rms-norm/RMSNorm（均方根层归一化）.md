@@ -37,7 +37,7 @@ $$
 
 ## 2. 数学定义与前向计算
 
-**定义（RMSNorm）**：对求和输入 $\mathbf{a} \in \mathbb{R}^n$，逐元素归一化：
+**定义（RMSNorm）**：对求和输入 $\mathbf{a} \in \mathbb{R}^n$ ，逐元素归一化：
 
 $$
 \bar{a}_i = \frac{a_i}{\mathrm{RMS}(\mathbf{a})},\qquad v_i = \bar{a}_i\,g_i,\qquad \mathrm{RMS}(\mathbf{a}) = \sqrt{\frac{1}{n}\sum_{i=1}^{n}a_i^2}
@@ -47,9 +47,9 @@ $$
 \mathbf{y} = f(\mathbf{v})
 $$
 
-其中 $\mathbf{x}$ 为线性层输入，$\mathbf{a} = W\mathbf{x}$ 为求和输入，$\mathbf{g}$ 为可学习 gain（初始化为 1，**经过学习后各维度值可能不同**），$\bar{\mathbf{a}}$ 为归一化输入，$\mathbf{v}$ 为 RMSNorm 的输出。
+其中 $\mathbf{x}$ 为线性层输入， $\mathbf{a} = W\mathbf{x}$ 为求和输入， $\mathbf{g}$ 为可学习 gain（初始化为 1，**经过学习后各维度值可能不同**）， $\bar{\mathbf{a}}$ 为归一化输入， $\mathbf{v}$ 为 RMSNorm 的输出。
 
-**与 LayerNorm 的关系**：当 $\mu = 0$ 时，$\sigma = \mathrm{RMS}(\mathbf{a})$，两者归一化结果逐元素相等。因此 RMSNorm 可视为 LayerNorm 在「输入零均值」假设下的特例；**实际中注意力层 / 线性层输出常近似零均值（即使初始均值不为 0）**，故性能损失有限。
+**与 LayerNorm 的关系**：当 $\mu = 0$ 时， $\sigma = \mathrm{RMS}(\mathbf{a})$ ，两者归一化结果逐元素相等。因此 RMSNorm 可视为 LayerNorm 在「输入零均值」假设下的特例；**实际中注意力层 / 线性层输出常近似零均值（即使初始均值不为 0）**，故性能损失有限。
 
 前向计算仅含三类可向量化操作：平方求均值、开方、逐元素乘除；不引入额外超参数。
 
@@ -61,13 +61,13 @@ $$
 
 ### 3.1 定理：缩放不变性
 
-设输入 $\mathbf{x}$ 整体缩放 $\delta > 0$，则 $\mathbf{a}' = W(\delta \mathbf{x}) = \delta \mathbf{a}$，归一化输出不变：
+设输入 $\mathbf{x}$ 整体缩放 $\delta > 0$ ，则 $\mathbf{a}' = W(\delta \mathbf{x}) = \delta \mathbf{a}$ ，归一化输出不变：
 
 $$
 \mathbf{v}' = \frac{\delta \mathbf{a}}{\mathrm{RMS}(\delta \mathbf{a})}\odot \mathbf{g} = \frac{\delta \mathbf{a}}{\delta\,\mathrm{RMS}(\mathbf{a})}\odot \mathbf{g} = \mathbf{v}
 $$
 
-权重矩阵 $W$ 整体缩放 $\delta$ 同理（此时 $\mathbf{a}' = \delta W\mathbf{x} = \delta \mathbf{a}$）。即 RMSNorm 对输入与权重矩阵的整体 re-scaling 不变。
+权重矩阵 $W$ 整体缩放 $\delta$ 同理，此时 $\mathbf{a}' = \delta W\mathbf{x} = \delta \mathbf{a}$ ；即 RMSNorm 对输入与权重矩阵的整体 re-scaling 不变。
 
 **边界条件**：**不变性仅对「整体缩放」成立**——对单个权重向量或部分维度做不同倍率缩放不成立；对平移（re-centering）也不成立，这是与 LayerNorm 的实质差异。
 
@@ -83,7 +83,7 @@ $$
 
 ## 4. 梯度推导
 
-设输入向量 $\mathbf{a}\in\mathbb{R}^{n}$，定义 RMS 归一化因子
+设输入向量 $\mathbf{a}\in\mathbb{R}^{n}$ ，定义 RMS 归一化因子
 
 $$
 r = \mathrm{RMS}(\mathbf{a}) = \sqrt{\frac{1}{n}\sum_{k=1}^n a_k^2}
@@ -101,11 +101,11 @@ $$
 \mathbf{v} = \bar{\mathbf{a}}\odot \mathbf{g}
 $$
 
-其中 $\mathbf{g}\in\mathbb{R}^{n}$ 为可学习逐元素增益参数，$\odot$ 表示哈达玛积。记上游梯度 $\partial L/\partial \mathbf{v}$。
+其中 $\mathbf{g}\in\mathbb{R}^{n}$ 为可学习逐元素增益参数， $\odot$ 表示哈达玛积。记上游梯度 $\partial L/\partial \mathbf{v}$ 。
 
 ### 4.1 损失对增益 g 的梯度
 
-由 $v_i = \bar{a}_i g_i$，链式法则给出
+由 $v_i = \bar{a}_i g_i$ ，链式法则给出
 
 $$
 \frac{\partial L}{\partial g_j} = \sum_i \frac{\partial L}{\partial v_i}\frac{\partial v_i}{\partial g_j} = \frac{\partial L}{\partial v_j}\,\bar{a}_j
@@ -119,19 +119,19 @@ $$
 
 ### 4.2 损失对输入 a 的梯度与 R 矩阵
 
-先求归一化算子的雅可比分量。由 $\bar{a}_i = a_i/r$ 以及 $\partial r/\partial a_j = a_j/(nr)$，
+先求归一化算子的雅可比分量。由 $\bar{a}_i = a_i/r$ 以及 $\partial r/\partial a_j = a_j/(nr)$ ，
 
 $$
 \frac{\partial \bar{a}_i}{\partial a_j} = \frac{\delta_{ij}}{r} - \frac{a_i a_j}{n r^3}
 $$
 
-结合 $v_i = g_i \bar{a}_i$，有 $\partial v_i/\partial a_j = g_i \cdot \partial\bar{a}_i/\partial a_j$。代入链式法则：
+结合 $v_i = g_i \bar{a}_i$ ，有 $\partial v_i/\partial a_j = g_i \cdot \partial\bar{a}_i/\partial a_j$ 。代入链式法则：
 
 $$
 \frac{\partial L}{\partial a_j} = \sum_i \frac{\partial L}{\partial v_i}\frac{\partial v_i}{\partial a_j} = \sum_i \left(g_i \frac{\partial L}{\partial v_i}\right) \left(\frac{\delta_{ij}}{r} - \frac{a_i a_j}{n r^3}\right)
 $$
 
-引入辅助梯度向量 $\mathbf{d} = \mathbf{g} \odot \partial L/\partial \mathbf{v}$，则
+引入辅助梯度向量 $\mathbf{d} = \mathbf{g} \odot \partial L/\partial \mathbf{v}$ ，则
 
 $$
 \frac{\partial L}{\partial a_j} = \frac{d_j}{r} - \frac{a_j}{n r^3}\left(\mathbf{a}^\top \mathbf{d}\right)
@@ -157,15 +157,15 @@ $$
 
 ### 4.3 损失对权重矩阵 W 的偏导
 
-设线性变换 $\mathbf{a} = W\mathbf{x}$，其中 $W\in\mathbb{R}^{n\times m}$，输入向量 $\mathbf{x}\in\mathbb{R}^{m}$，输出 $\mathbf{a}\in\mathbb{R}^{n}$。我们已经求得 $\partial L/\partial \mathbf{a}\in\mathbb{R}^{n}$，利用矩阵–向量链式法则求 $\partial L/\partial W$。
+设线性变换 $\mathbf{a} = W\mathbf{x}$ ，其中 $W\in\mathbb{R}^{n\times m}$ ，输入向量 $\mathbf{x}\in\mathbb{R}^{m}$ ，输出 $\mathbf{a}\in\mathbb{R}^{n}$ 。我们已经求得 $\partial L/\partial \mathbf{a}\in\mathbb{R}^{n}$ ，利用矩阵–向量链式法则求 $\partial L/\partial W$ 。
 
-对于标量损失 $L$，矩阵梯度的分量定义为
+对于标量损失 $L$ ，矩阵梯度的分量定义为
 
 $$
 \left(\frac{\partial L}{\partial W}\right)_{ij} = \frac{\partial L}{\partial W_{ij}}
 $$
 
-由 $\mathbf{a} = W\mathbf{x}$，分量形式 $a_i = \sum_{k=1}^m W_{ik} x_k$，于是
+由 $\mathbf{a} = W\mathbf{x}$ ，分量形式 $a_i = \sum_{k=1}^m W_{ik} x_k$ ，于是
 
 $$
 \frac{\partial a_i}{\partial W_{ij}} = x_j
@@ -187,7 +187,7 @@ $$
 
 ### 4.4 数值验证
 
-设 $\mathbf{a} = [3, 4]^\top$、$\mathbf{g} = [1, 1]^\top$、$\partial L/\partial \mathbf{v} = [1, 1]^\top$、$\mathbf{x} = [1, 2]^\top$（$\mathbf{a} = W\mathbf{x}$）。
+设 $\mathbf{a} = [3, 4]^\top$ 、 $\mathbf{g} = [1, 1]^\top$ 、 $\partial L/\partial \mathbf{v} = [1, 1]^\top$ 、 $\mathbf{x} = [1, 2]^\top$ ，且 $\mathbf{a} = W\mathbf{x}$ 。
 
 **步骤 1：归一化**
 
@@ -201,13 +201,13 @@ $$
 R = \frac{1}{\mathrm{RMS}(\mathbf{a})}\left(\mathbf{I} - \frac{\mathbf{a}\mathbf{a}^\top}{n\,\mathrm{RMS}(\mathbf{a})^2}\right) = \begin{bmatrix}0.1810 & -0.1357\\-0.1357 & 0.1018\end{bmatrix}
 $$
 
-**步骤 3：$\partial L/\partial \mathbf{g}$**
+**步骤 3：增益 g 的梯度**
 
 $$
 \frac{\partial L}{\partial \mathbf{g}} = \frac{\partial L}{\partial \mathbf{v}}\odot\bar{\mathbf{a}} = [1,1]^\top \odot [0.8485,\ 1.1314]^\top = [0.8485,\ 1.1314]^\top
 $$
 
-**步骤 4：$\partial L/\partial \mathbf{a}$**
+**步骤 4：输入 a 的梯度**
 
 $$
 \mathbf{d} = [1,1]^\top
@@ -217,7 +217,7 @@ $$
 \frac{\partial L}{\partial \mathbf{a}} = R\,\mathbf{d} = [0.0453,\ -0.0339]^\top
 $$
 
-**步骤 5：$\partial L/\partial W$**
+**步骤 5：权重 W 的梯度**
 
 $$
 \frac{\partial L}{\partial W} = \frac{\partial L}{\partial \mathbf{a}}\,\mathbf{x}^\top = \begin{bmatrix}0.0453 & 0.0906\\-0.0339 & -0.0678\end{bmatrix}
@@ -227,7 +227,7 @@ $$
 
 - $R$ 对称（步骤 2 副对角线相等）；
 - 梯度尺度被 $\frac{1}{r} \approx 0.2828$ 压缩（步骤 4 相对上游梯度 $[1,1]^\top$ 大幅缩小）；
-- 步骤 5 按列拉直为 $[0.0453, -0.0339, 0.0906, -0.0678]^\top$，与克罗内克积求和形式的结果一致。
+- 步骤 5 按列拉直为 $[0.0453, -0.0339, 0.0906, -0.0678]^\top$ ，与克罗内克积求和形式的结果一致。
 
 ### 4.5 隐式学习率调节
 
@@ -240,7 +240,7 @@ $$
 即**梯度尺度与输入 / 权重的 RMS 成反比**：权重矩阵范数偏大时，梯度被自动压小；范数偏小时梯度相对放大。其效果等价于隐式的学习率自适应（implicit learning rate adaptation），实验观测亦显示梯度尺度与 RMS 的负相关关系。
 
 > [!IMPORTANT]
-> **重点**：$R^{\prime} = R/\delta$ 中的 $\frac{1}{\delta}$ 是「隐式学习率」的数学来源——结构本身提供了梯度缩放，无需显式归一化梯度或调整学习率。
+> **重点**： $R^{\prime} = R/\delta$ 中的 $\frac{1}{\delta}$ 是「隐式学习率」的数学来源——结构本身提供了梯度缩放，无需显式归一化梯度或调整学习率。
 
 ### 4.6 Pre-Norm 与 Post-Norm
 
@@ -254,11 +254,11 @@ $$
 
 | 维度 | LayerNorm | RMSNorm |
 | :--- | :--- | :--- |
-| 统计量约简次数 | 2（均值 + 方差） | 1（$\mathbf{a}^2$ 的均值） |
-| 逐元素减法 | 有（$\mathbf{a} - \mu$） | 无 |
+| 统计量约简次数 | 2（均值 + 方差） | 1（对 $\mathbf{a}^2$ 求均值） |
+| 逐元素减法 | 有，需 $\mathbf{a} - \mu$ | 无 |
 | 可学习参数 | $\mathbf{g}, \mathbf{b}$ | $\mathbf{g}$ |
 
-归一化层是逐元素操作（$O(H)$），在 LLM 每层总计算量（$O(H^2)$）中占比极小（约万分之一量级），因此 RMSNorm 少一次统计量归约、省去 $\mathbf{a} - \mu$ 减法路径，在**计算量**上的节省有限；真正的收益在工程层面。
+归一化层是逐元素操作，复杂度 $O(H)$ ，在 LLM 每层总计算量 $O(H^2)$ 中占比极小（约万分之一量级），因此 RMSNorm 少一次统计量归约、省去 $\mathbf{a} - \mu$ 减法路径，在**计算量**上的节省有限；真正的收益在工程层面。
 
 并行训练中，统计量归约是跨设备集合通信点：LayerNorm 每层 2 次全局归约（均值、方差），RMSNorm 仅 1 次——少一次归约即少一次通信与同步，**通信过程也能节省成本**；再叠加省去减法路径带来的内存带宽节省，规模与并行度越大，收益越明显。
 
@@ -272,7 +272,7 @@ $$
 
 ### 5.2 数值稳定性
 
-工程实现通常在 RMS 分母加 $\varepsilon$ 防止除零：$r = \sqrt{\mathrm{mean}(\mathbf{a}^2) + \varepsilon}$（$\varepsilon$ 属实现惯例）。
+工程实现通常在 RMS 分母加 $\varepsilon$ 防止除零： $r = \sqrt{\mathrm{mean}(\mathbf{a}^2) + \varepsilon}$ ，$\varepsilon$ 属实现惯例。
 
 ### 5.3 代码实现（PyTorch）
 
@@ -353,7 +353,7 @@ autograd ∂L/∂g = tensor([0.8485, 1.1314])
 
 ## 6. 附录
 
-本章节补充正文 4.3 节克罗内克积形式的相关细节，采用 $\mathrm{vec}$ 算子与克罗内克积进行统一的符号推导与数值核验。约定：$\mathrm{vec}(\cdot)$ 为**列主序向量化算子**，将矩阵按列依次堆叠为列向量；克罗内克积定义为，对矩阵 $A\in\mathbb{R}^{m\times n}$、$B\in\mathbb{R}^{p\times q}$，$A\otimes B\in\mathbb{R}^{mp\times nq}$ 是分块矩阵，把 $A$ 的每个元素 $a_{ij}$ 替换为子块 $a_{ij}B$：
+本章节补充正文 4.3 节克罗内克积形式的相关细节，采用 $\mathrm{vec}$ 算子与克罗内克积进行统一的符号推导与数值核验。约定： $\mathrm{vec}(\cdot)$ 为**列主序向量化算子**，将矩阵按列依次堆叠为列向量；克罗内克积定义为，对矩阵 $A\in\mathbb{R}^{m\times n}$ 、 $B\in\mathbb{R}^{p\times q}$ ， $A\otimes B\in\mathbb{R}^{mp\times nq}$ 是分块矩阵，把 $A$ 的每个元素 $a_{ij}$ 替换为子块 $a_{ij}B$ ：
 
 $$
 A \otimes B = \begin{bmatrix} a_{11}B & \cdots & a_{1n}B \\ \vdots & \ddots & \vdots \\ a_{m1}B & \cdots & a_{mn}B \end{bmatrix}
@@ -365,21 +365,21 @@ $$
 \mathrm{vec}\big(\mathbf{u}\mathbf{v}^\top\big) = \mathbf{v} \otimes \mathbf{u},\qquad \mathrm{vec}(W\mathbf{x}) = \big(\mathbf{x}^\top \otimes I_n\big)\,\mathrm{vec}(W)
 $$
 
-引入 $\mathrm{vec}$ 算子的目的：$\partial \mathbf{a}/\partial W$ 是向量对矩阵的三阶雅可比张量，无法直接套用向量–向量链式法则；将矩阵参数 $W$ 拉直为长向量 $\mathrm{vec}(W)$，即可把三阶张量转化为标准二维雅可比矩阵，在向量空间中完成链式求导。
+引入 $\mathrm{vec}$ 算子的目的： $\partial \mathbf{a}/\partial W$ 是向量对矩阵的三阶雅可比张量，无法直接套用向量–向量链式法则；将矩阵参数 $W$ 拉直为长向量 $\mathrm{vec}(W)$ ，即可把三阶张量转化为标准二维雅可比矩阵，在向量空间中完成链式求导。
 
-沿用前文测试配置：$\mathbf{a} = [3,4]^\top$、$n=2$、$\mathbf{g}=[1,1]^\top$、$\partial L/\partial \mathbf{v}=[1,1]^\top$、$\mathbf{x}=[1,2]^\top$。此时归一化雅可比矩阵为
+沿用前文测试配置： $\mathbf{a} = [3,4]^\top$ 、 $n=2$ 、 $\mathbf{g}=[1,1]^\top$ 、 $\partial L/\partial \mathbf{v}=[1,1]^\top$ 、 $\mathbf{x}=[1,2]^\top$ 。此时归一化雅可比矩阵为
 
 $$
 R = \begin{bmatrix}0.1810 & -0.1357 \\ -0.1357 & 0.1018\end{bmatrix}
 $$
 
-记辅助梯度 $\mathbf{d} = \mathbf{g}\odot \partial L/\partial \mathbf{v} = [1,1]^\top$，于是
+记辅助梯度 $\mathbf{d} = \mathbf{g}\odot \partial L/\partial \mathbf{v} = [1,1]^\top$ ，于是
 
 $$
 \frac{\partial L}{\partial \mathbf{a}} = R\mathbf{d} = \begin{bmatrix}0.0453 \\ -0.0339\end{bmatrix}
 $$
 
-构造矩阵 $M = \mathrm{diag}(\mathbf{d})R$，本例中 $\mathrm{diag}(\mathbf{d}) = I_2$，故 $M = R$。计算 $\mathbf{x}^\top \otimes M$：
+构造矩阵 $M = \mathrm{diag}(\mathbf{d})R$ ，本例中 $\mathrm{diag}(\mathbf{d}) = I_2$ ，故 $M = R$ 。计算 $\mathbf{x}^\top \otimes M$ ：
 
 $$
 \mathbf{x}^\top \otimes R = \begin{bmatrix} 1\cdot R & 2\cdot R \end{bmatrix} = \begin{bmatrix} 0.1810 & -0.1357 & 0.3620 & -0.2714 \\ -0.1357 & 0.1018 & -0.2714 & 0.2036 \end{bmatrix}
@@ -391,19 +391,19 @@ $$
 \sum_{i=1}^n \big[\mathbf{x}^\top \otimes M\big]_i = \begin{bmatrix}0.1810 & -0.1357 & 0.3620 & -0.2714\end{bmatrix} + \begin{bmatrix}-0.1357 & 0.1018 & -0.2714 & 0.2036\end{bmatrix} = \begin{bmatrix}0.0453 & -0.0339 & 0.0906 & -0.0678\end{bmatrix}
 $$
 
-将结果转置为列向量，即为 $\mathrm{vec}\left(\partial L/\partial W\right)$，即
+将结果转置为列向量，即为 $\mathrm{vec}\left(\partial L/\partial W\right)$ ，即
 
 $$
 \sum_{i=1}^{n}\left[\mathbf{x}^\top\otimes\big(\mathrm{diag}(\mathbf{d})R\big)\right]_i = \mathrm{vec}\left(\frac{\partial L}{\partial W}\right)
 $$
 
-接下来基于 $\mathrm{vec}$ 算子执行链式推导。由 $\mathbf{a} = W\mathbf{x}$，使用向量化恒等式：
+接下来基于 $\mathrm{vec}$ 算子执行链式推导。由 $\mathbf{a} = W\mathbf{x}$ ，使用向量化恒等式：
 
 $$
 \mathrm{vec}(\mathbf{a}) = \big(\mathbf{x}^\top \otimes I_n\big)\,\mathrm{vec}(W)
 $$
 
-记拉直后的参数向量 $\boldsymbol{\theta}_W = \mathrm{vec}(W)$，对应的雅可比矩阵为
+记拉直后的参数向量 $\boldsymbol{\theta}_W = \mathrm{vec}(W)$ ，对应的雅可比矩阵为
 
 $$
 \frac{\partial \mathrm{vec}(\mathbf{a})}{\partial \boldsymbol{\theta}_W} = \mathbf{x}^\top \otimes I_n
@@ -415,7 +415,7 @@ $$
 \frac{\partial L}{\partial \boldsymbol{\theta}_W} = \left(\frac{\partial \mathrm{vec}(\mathbf{a})}{\partial \boldsymbol{\theta}_W}\right)^\top \frac{\partial L}{\partial \mathbf{a}}
 $$
 
-利用克罗内克积转置性质 $(A\otimes B)^\top = A^\top\otimes B^\top$ 以及 $I_n^\top = I_n$，得到
+利用克罗内克积转置性质 $(A\otimes B)^\top = A^\top\otimes B^\top$ 以及 $I_n^\top = I_n$ ，得到
 
 $$
 \big(\mathbf{x}^\top \otimes I_n\big)^\top = \mathbf{x} \otimes I_n
@@ -427,19 +427,19 @@ $$
 \frac{\partial L}{\partial \mathrm{vec}(W)} = \big(\mathbf{x} \otimes I_n\big)\frac{\partial L}{\partial \mathbf{a}}
 $$
 
-代入 $\partial L/\partial \mathbf{a} = R\mathbf{d}$、$\mathbf{d} = \mathbf{g}\odot \partial L/\partial \mathbf{v}$，最终建立正文给出的克罗内克积求和形式：
+代入 $\partial L/\partial \mathbf{a} = R\mathbf{d}$ 、 $\mathbf{d} = \mathbf{g}\odot \partial L/\partial \mathbf{v}$ ，最终建立正文给出的克罗内克积求和形式：
 
 $$
 \frac{\partial L}{\partial \mathrm{vec}(W)} = \mathbf{x}\otimes\left(R\left(\mathbf{g}\odot\frac{\partial L}{\partial \mathbf{v}}\right)\right) = \sum_{i=1}^{n}\left[\mathbf{x}^\top\otimes\left(\mathrm{diag}\left(\mathbf{g}\odot\frac{\partial L}{\partial \mathbf{v}}\right)R\right)\right]_i
 $$
 
-代入数值核验：$\mathbf{x} = [1,2]^\top$、$\partial L/\partial \mathbf{a} = [0.0453,-0.0339]^\top$，
+代入数值核验： $\mathbf{x} = [1,2]^\top$ 、 $\partial L/\partial \mathbf{a} = [0.0453,-0.0339]^\top$ ，
 
 $$
 (\mathbf{x} \otimes I_2)\frac{\partial L}{\partial \mathbf{a}} = \begin{bmatrix} x_1\cdot \partial L/\partial a_1 \\ x_1\cdot \partial L/\partial a_2 \\ x_2\cdot \partial L/\partial a_1 \\ x_2\cdot \partial L/\partial a_2 \end{bmatrix} = \begin{bmatrix} 0.0453 \\ -0.0339 \\ 0.0906 \\ -0.0678 \end{bmatrix}
 $$
 
-该结果与前述克罗内克积行求和结果完全一致，即为 $\mathrm{vec}(\partial L/\partial W)$。该 $\mathrm{vec}$ 形式适合高阶雅可比、Hessian 与扰动理论的代数推演；推导全程在拉直后的向量空间中使用标准向量链式法则，规避三阶张量的显式表达。
+该结果与前述克罗内克积行求和结果完全一致，即为 $\mathrm{vec}(\partial L/\partial W)$ 。该 $\mathrm{vec}$ 形式适合高阶雅可比、Hessian 与扰动理论的代数推演；推导全程在拉直后的向量空间中使用标准向量链式法则，规避三阶张量的显式表达。
 
 ---
 
