@@ -222,9 +222,9 @@ $$
 
 **步骤 5：权重 W 的梯度**
 
-$$
+```math
 \frac{\partial L}{\partial W} = \frac{\partial L}{\partial \mathbf{a}}\,\mathbf{x}^\top = \begin{bmatrix}0.0453 & 0.0906 \\ -0.0339 & -0.0678\end{bmatrix}
-$$
+```
 
 三个验证点：
 
