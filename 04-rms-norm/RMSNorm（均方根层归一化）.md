@@ -358,9 +358,9 @@ autograd ∂L/∂g = tensor([0.8485, 1.1314])
 
 本章节补充正文 4.3 节克罗内克积形式的相关细节，采用 $\mathrm{vec}$ 算子与克罗内克积进行统一的符号推导与数值核验。约定： $\mathrm{vec}(\cdot)$ 为**列主序向量化算子**，将矩阵按列依次堆叠为列向量；克罗内克积定义为，对矩阵 $A\in\mathbb{R}^{m\times n}$ 、 $B\in\mathbb{R}^{p\times q}$ ， $A\otimes B\in\mathbb{R}^{mp\times nq}$ 是分块矩阵，把 $A$ 的每个元素 $a_{ij}$ 替换为子块 $a_{ij}B$ ：
 
-$$
+```math
 A \otimes B = \begin{bmatrix} a_{11}B & \cdots & a_{1n}B \\ \vdots & \ddots & \vdots \\ a_{m1}B & \cdots & a_{mn}B \end{bmatrix}
-$$
+```
 
 两个核心恒等式贯穿推导：
 
@@ -372,21 +372,21 @@ $$
 
 沿用前文测试配置： $\mathbf{a} = [3,4]^\top$ 、 $n=2$ 、 $\mathbf{g}=[1,1]^\top$ 、 $\partial L/\partial \mathbf{v}=[1,1]^\top$ 、 $\mathbf{x}=[1,2]^\top$ 。此时归一化雅可比矩阵为
 
-$$
+```math
 R = \begin{bmatrix}0.1810 & -0.1357 \\ -0.1357 & 0.1018\end{bmatrix}
-$$
+```
 
 记辅助梯度 $\mathbf{d} = \mathbf{g}\odot \partial L/\partial \mathbf{v} = [1,1]^\top$ ，于是
 
-$$
+```math
 \frac{\partial L}{\partial \mathbf{a}} = R\mathbf{d} = \begin{bmatrix}0.0453 \\ -0.0339\end{bmatrix}
-$$
+```
 
 构造矩阵 $M = \mathrm{diag}(\mathbf{d})R$ ，本例中 $\mathrm{diag}(\mathbf{d}) = I_2$ ，故 $M = R$ 。计算 $\mathbf{x}^\top \otimes M$ ：
 
-$$
+```math
 \mathbf{x}^\top \otimes R = \begin{bmatrix} 1\cdot R & 2\cdot R \end{bmatrix} = \begin{bmatrix} 0.1810 & -0.1357 & 0.3620 & -0.2714 \\ -0.1357 & 0.1018 & -0.2714 & 0.2036 \end{bmatrix}
-$$
+```
 
 记号 $[\cdot]_i$ 表示取矩阵第 $i$ 行，对所有行求和：
 
@@ -438,8 +438,8 @@ $$
 
 代入数值核验： $\mathbf{x} = [1,2]^\top$ 、 $\partial L/\partial \mathbf{a} = [0.0453,-0.0339]^\top$ ，
 
-$$
+```math
 (\mathbf{x} \otimes I_2)\frac{\partial L}{\partial \mathbf{a}} = \begin{bmatrix} x_1\cdot \partial L/\partial a_1 \\ x_1\cdot \partial L/\partial a_2 \\ x_2\cdot \partial L/\partial a_1 \\ x_2\cdot \partial L/\partial a_2 \end{bmatrix} = \begin{bmatrix} 0.0453 \\ -0.0339 \\ 0.0906 \\ -0.0678 \end{bmatrix}
-$$
+```
 
 该结果与前述克罗内克积行求和结果完全一致，即为 $\mathrm{vec}(\partial L/\partial W)$ 。该 $\mathrm{vec}$ 形式适合高阶雅可比、Hessian 与扰动理论的代数推演；推导全程在拉直后的向量空间中使用标准向量链式法则，规避三阶张量的显式表达。
