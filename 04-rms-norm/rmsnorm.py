@@ -4,7 +4,6 @@ import torch.nn as nn
 import matplotlib.pyplot as plt
 import numpy as np
 import os
-
 os.makedirs("./images", exist_ok=True)
 
 class RMSNorm(nn.Module):
@@ -38,7 +37,6 @@ class SimpleSublayer(nn.Module):
     def forward(self, x):
         return self.w2(self.act(self.w1(x)))
 
-
 class PreNormBlock(nn.Module):
     def __init__(self, dim):
         super().__init__()
@@ -47,7 +45,6 @@ class PreNormBlock(nn.Module):
     def forward(self, x):
         return x + self.sub(self.norm(x))
 
-
 class PostNormBlock(nn.Module):
     def __init__(self, dim):
         super().__init__()
@@ -55,7 +52,6 @@ class PostNormBlock(nn.Module):
         self.sub = SimpleSublayer(dim)
     def forward(self, x):
         return self.norm(x + self.sub(x))
-
 
 class PostNormLNBlock(nn.Module):
     def __init__(self, dim):
@@ -69,7 +65,6 @@ if __name__ == "__main__":
     torch.manual_seed(0)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
-
     dim, n_layers, batch_size, seq_len, vocab = 128, 16, 8, 16, 1000
 
     # 缩放不变性
@@ -86,11 +81,9 @@ if __name__ == "__main__":
     pre_blocks = nn.Sequential(*[PreNormBlock(dim) for _ in range(n_layers)]).to(device)
     post_blocks = nn.Sequential(*[PostNormBlock(dim) for _ in range(n_layers)]).to(device)
     postln_blocks = nn.Sequential(*[PostNormLNBlock(dim) for _ in range(n_layers)]).to(device)
-
     head_pre = nn.Linear(dim, vocab, bias=False).to(device)
     head_post = nn.Linear(dim, vocab, bias=False).to(device)
     head_postln = nn.Linear(dim, vocab, bias=False).to(device)
-
     criterion = nn.CrossEntropyLoss()
     opt = torch.optim.AdamW(
         list(pre_blocks.parameters()) + list(head_pre.parameters())
@@ -103,28 +96,22 @@ if __name__ == "__main__":
     post_mean_rec = []
     postln_mean_rec = []
     n_steps = 2000
-
     for step in range(n_steps):
         x = torch.randn(batch_size, seq_len, dim, device=device) + 1.0
         target = torch.randint(0, vocab, (batch_size, seq_len), device=device)
         opt.zero_grad()
-
         h_pre = pre_blocks(x)
         logits_pre = head_pre(h_pre)
         loss_pre = criterion(logits_pre.reshape(-1, vocab), target.reshape(-1))
-
         h_post = post_blocks(x)
         logits_post = head_post(h_post)
         loss_post = criterion(logits_post.reshape(-1, vocab), target.reshape(-1))
-
         h_postln = postln_blocks(x)
         logits_postln = head_postln(h_postln)
         loss_postln = criterion(logits_postln.reshape(-1, vocab), target.reshape(-1))
-
         loss = loss_pre + loss_post + loss_postln
         loss.backward()
         opt.step()
-
         if step % 20 == 0:
             pre_mean_rec.append(h_pre.mean().item())
             post_mean_rec.append(h_post.mean().item())
@@ -142,7 +129,14 @@ if __name__ == "__main__":
     ax.legend()
     ax.grid(True)
     plt.tight_layout()
-    plt.savefig("./images/compare_mean_three_setting.png", dpi=300)
-    plt.close()
 
-    print("\n✅ 对比图已保存: ./images/compare_mean_three_setting.png")
+    # ========== 修改点：输出SVG，开启压缩，减小体积 ==========
+    plt.savefig(
+        "./images/compare_mean_three_setting.svg",
+        format="svg",
+        bbox_inches="tight",
+        metadata={},
+        # 关闭多余渲染元素，svg内部精简
+    )
+    plt.close()
+    print("\n✅ SVG矢量图已保存: ./images/compare_mean_three_setting.svg")
