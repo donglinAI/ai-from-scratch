@@ -196,9 +196,13 @@ $$
 
 **步骤 2：R 矩阵**
 
-$$
-R = \frac{1}{\mathrm{RMS}(\mathbf{a})}\left(\mathbf{I} - \frac{\mathbf{a}\mathbf{a}^\top}{n\,\mathrm{RMS}(\mathbf{a})^2}\right) = \begin{bmatrix}0.1810 & -0.1357 \\ -0.1357 & 0.1018\end{bmatrix}
-$$
+```math
+R = \frac{1}{\mathrm{RMS}(\mathbf{a})}\left(\mathbf{I} - \frac{\mathbf{a}\mathbf{a}^\top}{n\,\mathrm{RMS}(\mathbf{a})^2}\right)
+= \begin{bmatrix}
+0.1810 & -0.1357 \\
+-0.1357 & 0.1018
+\end{bmatrix}
+```
 
 **步骤 3：增益 g 的梯度**
 
