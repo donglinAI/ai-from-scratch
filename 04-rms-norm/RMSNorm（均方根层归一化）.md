@@ -52,7 +52,7 @@ $$
 
 前向计算仅含三类可向量化操作：平方求均值、开方、逐元素乘除；不引入额外超参数。
 
-![训练过程中隐层均值的演化（PreNorm vs PostNorm）](images/01-forward-compute.png)
+![训练过程中隐层均值的演化（PreNorm vs PostNorm）](images/compare_mean_three_setting.svg)
 
 *图 1 训练过程中隐层均值的演化（PreNorm vs PostNorm）*
 
