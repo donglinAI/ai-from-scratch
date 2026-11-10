@@ -276,7 +276,7 @@ $$
 
 
 <div align="center">
-<img src="images/03-overhead-table.png" alt="各算子计算效率对比" width="400">
+<img src="images/03-operator_time.png" alt="各算子计算效率对比" width="400">
 <br>
 图3 各算子计算效率对比
 
