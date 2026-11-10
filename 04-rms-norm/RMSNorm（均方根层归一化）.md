@@ -2,7 +2,7 @@
 
 [![arXiv](https://img.shields.io/badge/arXiv-1910.07467-b31b1b.svg)](https://arxiv.org/abs/1910.07467)
 
-**RMSNorm（Root Mean Square Layer Normalization）** 是 LayerNorm 的一种简化变体：**移除均值中心化（re-centering）**，仅保留基于 RMS 的**缩放归一化（re-scaling）**。在效果与 LayerNorm 相当的前提下（部分场景），只做**一次统计量规约、无逐元素减法路径**，计算开销更低；同时保留对输入与权重整体缩放的 **re-scaling 不变性**，归一化结果不受尺度影响。凭借低开销与稳定效果，RMSNorm 已被 **LLaMA、Mistral、Qwen 等主流大模型广泛采用**，成为大模型时代最常用的归一化层之一。
+**RMSNorm（Root Mean Square Layer Normalization）** 是 LayerNorm 的一种简化变体：**移除均值中心化（re-centering）**，仅保留基于 RMS 的**缩放归一化（re-scaling）**。在效果与 LayerNorm 相当的前提下，只做**一次统计量规约、无逐元素减法路径**，计算开销更低；同时保留对输入与权重整体缩放的 **re-scaling 不变性**，归一化结果不受尺度影响。凭借低开销与稳定效果，RMSNorm 已被 **LLaMA、Mistral、Qwen 等主流大模型广泛采用**，成为大模型时代最常用的归一化层之一。
 
 - 论文：[Root Mean Square Layer Normalization (arXiv:1910.07467)](https://arxiv.org/pdf/1910.07467)
 
@@ -50,11 +50,15 @@ $$
 
 **与 LayerNorm 的关系**：当 $\mu = 0$ 时， $\sigma = \mathrm{RMS}(\mathbf{a})$ ，两者归一化结果逐元素相等。因此 RMSNorm 可视为 LayerNorm 在「输入零均值」假设下的特例；**实际中注意力层 / 线性层输出常近似零均值（即使初始均值不为 0）**，故性能损失有限。
 
-前向计算仅含三类可向量化操作：平方求均值、开方、逐元素乘除；不引入额外超参数。
 
-![训练过程中隐层均值的演化（PreNorm vs PostNorm）](images/compare_mean_three_setting.svg)
 
-*图 1 训练过程中隐层均值的演化（PreNorm vs PostNorm）*
+<div align="center">
+<img src="images/01-compare_mean.png", width="700">
+<br>
+图 1 训练过程中隐层均值的演化
+</div>
+
+来源：[rmsnorm.py代码](https://github.com/donglinAI/ai-from-scratch/blob/main/04-rms-norm/rmsnorm.py)
 
 ## 3. 不变性分析
 
@@ -222,9 +226,9 @@ $$
 
 **步骤 5：权重 W 的梯度**
 
-```math
+$$
 \frac{\partial L}{\partial W} = \frac{\partial L}{\partial \mathbf{a}}\,\mathbf{x}^\top = \begin{bmatrix}0.0453 & 0.0906 \\ -0.0339 & -0.0678\end{bmatrix}
-```
+$$
 
 三个验证点：
 
@@ -247,9 +251,14 @@ $$
 
 ### 4.6 Pre-Norm 与 Post-Norm
 
-![Post-LN 与 Pre-LN 的 Transformer 层结构对比](images/02-pre-norm-post-norm.png)
 
-*图 2 Post-LN 与 Pre-LN 的 Transformer 层结构对比。来源：[arXiv:2002.04745](https://arxiv.org/pdf/2002.04745)*
+<div align="center">
+<img src="images/02-pre-norm-post-norm.png" alt="Post-LN 与 Pre-LN 对比" width="400">
+<br>
+图2 Post-LN 与 Pre-LN 对比
+</div>
+
+来源：[arXiv:2002.04745 - Figure1](https://arxiv.org/pdf/2002.04745)
 
 ## 5. 计算复杂度与工程实现
 
@@ -265,13 +274,24 @@ $$
 
 并行训练中，统计量归约是跨设备集合通信点：LayerNorm 每层 2 次全局归约（均值、方差），RMSNorm 仅 1 次——少一次归约即少一次通信与同步，**通信过程也能节省成本**；再叠加省去减法路径带来的内存带宽节省，规模与并行度越大，收益越明显。
 
-![各类算子的 FLOP 与运行时间占比](images/03-overhead-table.png)
 
-*表 1 各类算子的 FLOP 与运行时间占比。来源：[arXiv:2007.00072](https://arxiv.org/pdf/2007.00072)*
+<div align="center">
+<img src="images/03-overhead-table.png" alt="各算子计算效率对比" width="400">
+<br>
+图3 各算子计算效率对比
 
-![不同归一化方案的模型效果对比](images/04-rmsnorm-speedup.png)
+</div>
 
-*表 2 不同归一化方案的模型效果对比。来源：[arXiv:2102.11972](https://arxiv.org/pdf/2102.11972)*
+来源：[arXiv:2007.00072 - Table1](https://arxiv.org/pdf/2007.00072)
+
+
+<div align="center">
+<img src="images/04-rmsnorm-speedup.png" alt="不同归一化方案对比" width="800">
+<br>
+图4 不同归一化方案对比
+</div>
+
+来源：[arXiv:2102.11972 - Table1](https://arxiv.org/pdf/2102.11972)
 
 ### 5.2 数值稳定性
 
@@ -358,9 +378,9 @@ autograd ∂L/∂g = tensor([0.8485, 1.1314])
 
 本章节补充正文 4.3 节克罗内克积形式的相关细节，采用 $\mathrm{vec}$ 算子与克罗内克积进行统一的符号推导与数值核验。约定： $\mathrm{vec}(\cdot)$ 为**列主序向量化算子**，将矩阵按列依次堆叠为列向量；克罗内克积定义为，对矩阵 $A\in\mathbb{R}^{m\times n}$ 、 $B\in\mathbb{R}^{p\times q}$ ， $A\otimes B\in\mathbb{R}^{mp\times nq}$ 是分块矩阵，把 $A$ 的每个元素 $a_{ij}$ 替换为子块 $a_{ij}B$ ：
 
-```math
+$$
 A \otimes B = \begin{bmatrix} a_{11}B & \cdots & a_{1n}B \\ \vdots & \ddots & \vdots \\ a_{m1}B & \cdots & a_{mn}B \end{bmatrix}
-```
+$$
 
 两个核心恒等式贯穿推导：
 
@@ -372,21 +392,21 @@ $$
 
 沿用前文测试配置： $\mathbf{a} = [3,4]^\top$ 、 $n=2$ 、 $\mathbf{g}=[1,1]^\top$ 、 $\partial L/\partial \mathbf{v}=[1,1]^\top$ 、 $\mathbf{x}=[1,2]^\top$ 。此时归一化雅可比矩阵为
 
-```math
+$$
 R = \begin{bmatrix}0.1810 & -0.1357 \\ -0.1357 & 0.1018\end{bmatrix}
-```
+$$
 
 记辅助梯度 $\mathbf{d} = \mathbf{g}\odot \partial L/\partial \mathbf{v} = [1,1]^\top$ ，于是
 
-```math
+$$
 \frac{\partial L}{\partial \mathbf{a}} = R\mathbf{d} = \begin{bmatrix}0.0453 \\ -0.0339\end{bmatrix}
-```
+$$
 
 构造矩阵 $M = \mathrm{diag}(\mathbf{d})R$ ，本例中 $\mathrm{diag}(\mathbf{d}) = I_2$ ，故 $M = R$ 。计算 $\mathbf{x}^\top \otimes M$ ：
 
-```math
+$$
 \mathbf{x}^\top \otimes R = \begin{bmatrix} 1\cdot R & 2\cdot R \end{bmatrix} = \begin{bmatrix} 0.1810 & -0.1357 & 0.3620 & -0.2714 \\ -0.1357 & 0.1018 & -0.2714 & 0.2036 \end{bmatrix}
-```
+$$
 
 记号 $[\cdot]_i$ 表示取矩阵第 $i$ 行，对所有行求和：
 
@@ -438,8 +458,8 @@ $$
 
 代入数值核验： $\mathbf{x} = [1,2]^\top$ 、 $\partial L/\partial \mathbf{a} = [0.0453,-0.0339]^\top$ ，
 
-```math
+$$
 (\mathbf{x} \otimes I_2)\frac{\partial L}{\partial \mathbf{a}} = \begin{bmatrix} x_1\cdot \partial L/\partial a_1 \\ x_1\cdot \partial L/\partial a_2 \\ x_2\cdot \partial L/\partial a_1 \\ x_2\cdot \partial L/\partial a_2 \end{bmatrix} = \begin{bmatrix} 0.0453 \\ -0.0339 \\ 0.0906 \\ -0.0678 \end{bmatrix}
-```
+$$
 
 该结果与前述克罗内克积行求和结果完全一致，即为 $\mathrm{vec}(\partial L/\partial W)$ 。该 $\mathrm{vec}$ 形式适合高阶雅可比、Hessian 与扰动理论的代数推演；推导全程在拉直后的向量空间中使用标准向量链式法则，规避三阶张量的显式表达。
