@@ -16,7 +16,6 @@
 - [4. 梯度推导](#4-梯度推导)
 - [5. 计算复杂度与工程实现](#5-计算复杂度与工程实现)
 - [6. 附录](#6-附录)
-- [参考文献](#参考文献)
 
 ---
 
@@ -55,7 +54,7 @@ $$
 
 ![训练过程中隐层均值的演化（PreNorm vs PostNorm）](images/01-forward-compute.png)
 
-*图 1 — Mean evolution: PreNorm vs PostNorm(RMS) vs PostNorm(LN)。PreNorm + RMSNorm 的隐层均值随训练收敛到 0，PostNorm + RMSNorm 稳定在约 0.55，PostNorm + LayerNorm 恒为 0。*
+*图 1 训练过程中隐层均值的演化（PreNorm vs PostNorm）*
 
 ## 3. 不变性分析
 
@@ -198,7 +197,7 @@ $$
 **步骤 2：R 矩阵**
 
 $$
-R = \frac{1}{\mathrm{RMS}(\mathbf{a})}\left(\mathbf{I} - \frac{\mathbf{a}\mathbf{a}^\top}{n\,\mathrm{RMS}(\mathbf{a})^2}\right) = \begin{bmatrix}0.1810 & -0.1357\\-0.1357 & 0.1018\end{bmatrix}
+R = \frac{1}{\mathrm{RMS}(\mathbf{a})}\left(\mathbf{I} - \frac{\mathbf{a}\mathbf{a}^\top}{n\,\mathrm{RMS}(\mathbf{a})^2}\right) = \begin{bmatrix}0.1810 & -0.1357 \\ -0.1357 & 0.1018\end{bmatrix}
 $$
 
 **步骤 3：增益 g 的梯度**
@@ -220,7 +219,7 @@ $$
 **步骤 5：权重 W 的梯度**
 
 $$
-\frac{\partial L}{\partial W} = \frac{\partial L}{\partial \mathbf{a}}\,\mathbf{x}^\top = \begin{bmatrix}0.0453 & 0.0906\\-0.0339 & -0.0678\end{bmatrix}
+\frac{\partial L}{\partial W} = \frac{\partial L}{\partial \mathbf{a}}\,\mathbf{x}^\top = \begin{bmatrix}0.0453 & 0.0906 \\ -0.0339 & -0.0678\end{bmatrix}
 $$
 
 三个验证点：
@@ -246,7 +245,7 @@ $$
 
 ![Post-LN 与 Pre-LN 的 Transformer 层结构对比](images/02-pre-norm-post-norm.png)
 
-*图 2 — (a) Post-LN Transformer layer；(b) Pre-LN Transformer layer。来源：[arXiv:2002.04745](https://arxiv.org/pdf/2002.04745)*
+*图 2 Post-LN 与 Pre-LN 的 Transformer 层结构对比。来源：[arXiv:2002.04745](https://arxiv.org/pdf/2002.04745)*
 
 ## 5. 计算复杂度与工程实现
 
@@ -262,17 +261,17 @@ $$
 
 并行训练中，统计量归约是跨设备集合通信点：LayerNorm 每层 2 次全局归约（均值、方差），RMSNorm 仅 1 次——少一次归约即少一次通信与同步，**通信过程也能节省成本**；再叠加省去减法路径带来的内存带宽节省，规模与并行度越大，收益越明显。
 
-![PyTorch 中各类算子的 FLOP 与运行时间占比](images/03-overhead-table.png)
+![各类算子的 FLOP 与运行时间占比](images/03-overhead-table.png)
 
-*表 1 — Proportions for operator classes in PyTorch。来源：[arXiv:2007.00072](https://arxiv.org/pdf/2007.00072)*
+*表 1 各类算子的 FLOP 与运行时间占比。来源：[arXiv:2007.00072](https://arxiv.org/pdf/2007.00072)*
 
 ![不同归一化方案的模型效果对比](images/04-rmsnorm-speedup.png)
 
-*表 2 — 各归一化 / 初始化方案在 223M 参数 Transformer 上的对比。来源：[arXiv:2102.11972](https://arxiv.org/pdf/2102.11972)*
+*表 2 不同归一化方案的模型效果对比。来源：[arXiv:2102.11972](https://arxiv.org/pdf/2102.11972)*
 
 ### 5.2 数值稳定性
 
-工程实现通常在 RMS 分母加 $\varepsilon$ 防止除零： $r = \sqrt{\mathrm{mean}(\mathbf{a}^2) + \varepsilon}$ ，$\varepsilon$ 属实现惯例。
+工程实现通常在 RMS 分母加 $\varepsilon$ 防止除零： $r = \sqrt{\mathrm{mean}(\mathbf{a}^2) + \varepsilon}$ , $\varepsilon$ 属实现惯例。
 
 ### 5.3 代码实现（PyTorch）
 
@@ -440,10 +439,3 @@ $$
 $$
 
 该结果与前述克罗内克积行求和结果完全一致，即为 $\mathrm{vec}(\partial L/\partial W)$ 。该 $\mathrm{vec}$ 形式适合高阶雅可比、Hessian 与扰动理论的代数推演；推导全程在拉直后的向量空间中使用标准向量链式法则，规避三阶张量的显式表达。
-
----
-
-## 参考文献
-
-- Zhang, B., & Sennrich, R. *Root Mean Square Layer Normalization*. NeurIPS 2019. [arXiv:1910.07467](https://arxiv.org/pdf/1910.07467)
-- Xiong, R., et al. *On Layer Normalization in the Transformer Architecture*. ICML 2020. [arXiv:2002.04745](https://arxiv.org/pdf/2002.04745)
