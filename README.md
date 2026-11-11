@@ -31,7 +31,7 @@
 - ✓ `backpropagation-from-scratch` —— 纯 Python 手动实现反向传播
 - ✓ `rotary-position-embedding` —— RoPE 旋转位置编码
 - ✓ `self-attention` —— 多头自注意力 / 分组查询注意力（MHA & GQA）
-- ☐ `rms-norm` —— RMSNorm 归一化
+- ✓ `rms-norm` —— RMSNorm 归一化
 - ☐ `swiglu` —— SwiGLU 激活函数
 - ☐ `parameter-init` —— 权重初始化策略
 - ☐ `tokenizer` —— 分词器（BPE / SentencePiece）
