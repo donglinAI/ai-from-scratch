@@ -647,7 +647,7 @@ def resolve_model_dir(model: str) -> Path:
         return p
     from modelscope import snapshot_download
     print(f"从 ModelScope 下载 {model} …")
-    return Path(snapshot_download(model))
+    return Path(snapshot_download(model, cache_dir="/root/autodl-tmp/modelscope_cache"))
 
 
 def eos_token_ids(tokenizer) -> list[int]:

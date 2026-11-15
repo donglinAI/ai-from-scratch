@@ -62,3 +62,7 @@ echo "⚠️ 重要：如果是新生成密钥，需要手动复制公钥添加�
 echo "测试ssh连接命令：ssh -T git@github.com"
 echo "HF_HOME=/root/autodl-tmp/hf_cache"
 echo "仓库位置：/root/autodl-tmp/ai-from-scratch"
+
+pip install modelscope
+pip install safetensors
+pip install transformers
