@@ -100,14 +100,13 @@ q_{2i+1}
 \end{pmatrix}
 ```
 
-旋转矩阵正交 $(R^\top R = RR^\top = I)$ ，所以**模长不变** $((R\boldsymbol q)^\top (R\boldsymbol q)
-= \boldsymbol q^\top R^\top R \boldsymbol q = \boldsymbol q^\top \boldsymbol q)$；两个位置 $`m,n`$ 上的向量做内积时，结果只依赖相对位移 $`\Delta=n-m`$：
+旋转矩阵正交 $(R^\top R = RR^\top = I)$ （正交矩阵只做旋转，不做拉伸），所以**模长不变** （模长的平方等于向量的转置矩阵乘向量，即 $(R\boldsymbol q)^\top (R\boldsymbol q)
+= \boldsymbol q^\top R^\top R \boldsymbol q = \boldsymbol q^\top \boldsymbol q$ ，可见旋转后向量的模长和原向量模长相等）；两个位置 $`m,n`$ 上的向量做内积时，结果只依赖相对位移 $`\Delta=n-m`$：
 
 ```math
 \langle R_m q,\;R_n k\rangle=\langle q,\;R_{n-m}k\rangle
 ```
 
-代码里的自检第 6 组直接数值验证了这两条性质。
 
 ---
 
@@ -134,7 +133,7 @@ f_i, & \lambda_i<\lambda_{\mathrm{high}} \\[6pt]
 | 段 | 判定 | 作用 | 直觉 |
 | --- | --- | --- | --- |
 | 高频段 | $`\lambda_i<2048`$ | $`f_i`$ 不动 | 保住局部次序与短距离分辨率 |
-| 中频段 | $`2048\le\lambda_i\le 8192`$ | 在 $`f_i/\alpha`$ 与 $`f_i`$ 之间凸组合 | 平滑过渡，避免硬切换 |
+| 中频段 | $`2048\le\lambda_i\le 8192`$ | 在 $`f_i/\alpha`$ 与 $`f_i`$ 之间插值 | 平滑过渡，避免硬切换 |
 | 低频段 | $`\lambda_i>8192`$ | $`f_i/\alpha`$ | 拉长量程，把长距离压回训练分布 |
 
 ### 3.2 插值权重 `s_i` 从哪里来
@@ -440,6 +439,15 @@ $`s_i`$ 的分母为零。完整版的 `Llama3RoPEConfig.__post_init__` 会直�
 **Q7：为什么 $`\cos/\sin`$ 要用 float32？**
 
 旋转频率对精度敏感，bf16/fp16 下长位置的相位误差会被放大。实现中 `inv_freq` 与 `cos/sin` 均以 float32 计算，最后再转回 $`q,k`$ 的 dtype。
+
+旋转频率对精度敏感，bf16/fp16 下长位置的相位误差会被放大。实现中 `inv_freq` 与 `cos/sin` 均以 float32 计算，最后再转回 $`q,k`$ 的 dtype。
+
+**Q8：相对三段式频率缩放，全局统一缩放频率的缺点？**
+
+全局统一缩放后，高频（本身波长很短，负责编码相邻 token、短距离依赖）也被一起拉长波长。高频本来区分【位置1和位置2】【位置5和位置6】这种很近的 token，那么频率压低之后，相邻位置旋转角度差变小，QK 内积区分度下降，**局部语序、细粒度依赖变差，困惑度上升，短文本识别效果变差。**
+
+
+
 
 ---
 
