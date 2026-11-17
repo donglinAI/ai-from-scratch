@@ -11,7 +11,7 @@
 自回归语言模型逐 token 生成，每生成一个新 token，都要拿它的 Query 与**所有历史 token** 的 Key、Value 计算注意力：
 
 ```math
-\operatorname{Attention}(Q,K,V)=\operatorname{softmax}\!\left(\frac{QK^{\top}}{\sqrt{d}}\right)V
+\mathrm{Attention}(Q,K,V)=\mathrm{softmax}\!\left(\frac{QK^{\top}}{\sqrt{d}}\right)V
 ```
 
 关键观察：第 $`t`$ 步计算注意力时，历史 token 的 $`K`$、$`V`$ 和上一步（第 $`t-1`$ 步）计算时**完全一样**——因为它们是同一个 token 在同一层的投影结果。既然如此，就只算一次、存下来复用，这就是 KV Cache。
@@ -74,7 +74,7 @@ Prefill 之所以能「一次算完」，是因为 prompt 的所有 token 都已
 KV Cache 的显存公式：
 
 ```math
-\operatorname{bytes}=2\times L\times H_{kv}\times S_{\max}\times d_{\mathrm{head}}\times b_{\mathrm{elem}}
+\mathrm{bytes}=2\times L\times H_{kv}\times S_{\max}\times d_{\mathrm{head}}\times b_{\mathrm{elem}}
 ```
 
 - 系数 $`2`$：$`K`$ 和 $`V`$ 两份
@@ -87,8 +87,8 @@ KV Cache 的显存公式：
 **Llama 3.1 8B @ 128k 上下文的例子**（正是你代码注释里的计算）：
 
 ```math
-2\times 32\times 8\times 131072\times 128\times 2\ \operatorname{bytes}
-\approx 17.2\ \operatorname{GB}
+2\times 32\times 8\times 131072\times 128\times 2\ \mathrm{bytes}
+\approx 17.2\ \mathrm{GB}
 ```
 
 注意：8B 权重本身 bf16 只有 16 GB，KV Cache（17.2 GB）**比权重还大**。这是长上下文推理最主要的显存消耗，也是量化 KV Cache（如 int8/int4 KV）技术存在的动机。
