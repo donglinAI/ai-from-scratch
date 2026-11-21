@@ -16,7 +16,7 @@
 
 关键观察：第 $`t`$ 步计算注意力时，历史 token 的 $`K`$、$`V`$ 和上一步（第 $`t-1`$ 步）计算时**完全一样**——因为它们是同一个 token 在同一层的投影结果。既然如此，就只算一次、存下来复用，这就是 KV Cache。
 
-用你代码里的话说：`KVCache` 是一个「预分配静态表」，`update` 负责「写入切片、返回读取视图」，后续步骤直接复用，不再重复投影。
+`KVCache` 是一个「预分配静态表」，`update` 负责「写入切片、返回读取视图」，后续步骤直接复用，不再重复投影。
 
 ---
 
@@ -57,7 +57,7 @@
 | **Prefill**（预填充） | 整个 prompt | 一次性算完所有 token 的 $`Q/K/V`$，$`K/V`$ 全部写入 cache，取最后一个位置的 logits 采样第一个新 token | 计算密集（吃 GPU 算力） |
 | **Decode**（增量解码） | 每次 1 个新 token | 只算新 token 的 $`Q/K/V`$，$`K/V`$ 追加进 cache，与历史做注意力 | 访存密集（吃显存带宽） |
 
-你的代码里这个两阶段在 `generate()` 中清晰对应：
+代码里这个两阶段在 `generate()` 中清晰对应：
 
 ```python
 logits = model(ids, cache=cache)[:, -1, :]  # prefill：一次喂完整个 prompt
@@ -84,7 +84,7 @@ KV Cache 的显存公式：
 - $`d_{\mathrm{head}}`$：每头维度
 - $`b_{\mathrm{elem}}`$：单个元素的字节数，对应代码中的 `bytes_per_elem`；bf16 为 2 字节，fp32 为 4 字节
 
-**Llama 3.1 8B @ 128k 上下文的例子**（正是你代码注释里的计算）：
+**Llama 3.1 8B @ 128k 上下文的例子**（正是代码注释里的计算）：
 
 ```math
 2\times 32\times 8\times 131072\times 128\times 2\ \mathrm{bytes}
@@ -102,7 +102,7 @@ Llama 3.1 8B：32 个 q 头，但只有 8 个 kv 头（GQA，Grouped-Query Atten
 - 若用 MHA（32 q = 32 kv）：$`H_{kv}=32`$，KV Cache 是现在的 4 倍 ≈ 68.8 GB，128k 上下文直接爆显存
 - GQA 让 4 个 q 头共享同一组 kv 头，KV Cache 缩小 4 倍
 
-这就是你代码里 `repeat_kv` 的意义：把 8 个 kv 头用 `expand` 扩成 32 个 q 头视角，**只建视图、不拷贝数据**：
+这就是代码里 `repeat_kv` 的意义：把 8 个 kv 头用 `expand` 扩成 32 个 q 头视角，**只建视图、不拷贝数据**：
 
 ```python
 def repeat_kv(x, n_rep):
