@@ -91,3 +91,21 @@ ssh -T git@github.com
 不用担心，`Warning: xxx` 信息，首次联通存在，之后没有；对应的动作是，在 `.ssh` 目录新增 `known_hosts` 文件，存放 github 主机指纹；
 
 > 补充：结尾那句 `but GitHub does not provide shell access` 也是正常提示 —— GitHub 只开放 git 操作权限，不提供登录 shell，不影响 push。
+
+
+## 4. 问题
+
+Q1 ： 在windows系统通过 wsl 安装 ubuntu 子系统后，配置github后，没法联通 github 网站，报错 `ssh: connect to host [github.com](https://github.com) port 22: Connection refused`
+
+A1 : 通过 增加 ~/.ssh/config 实现
+
+```
+cat > ~/.ssh/config <<'EOF'
+Host github.com
+  Hostname ssh.github.com
+  Port 443
+  User git
+  IdentityFile ~/.ssh/id_ed25519
+EOF
+chmod 600 ~/.ssh/config
+```
