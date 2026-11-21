@@ -1,6 +1,6 @@
 # AdamW 优化器
 
-**AdamW（Decoupled Weight Decay，解耦权重衰减）**是对 Adam 优化器的一种改进，出自论文 [Decoupled Weight Decay Regularization](https://arxiv.org/abs/1711.05101)（Loshchilov & Hutter，ICLR 2019）。它的核心思想是：**把权重衰减从梯度的动量统计中解耦出来，直接作用在权重上**，避免衰减项被 Adam 的自适应步长「扭曲」。由于泛化更好、超参更稳，AdamW 已成为大模型预训练的事实默认优化器（GPT、LLaMA、Qwen 等均采用）。
+**AdamW（Decoupled Weight Decay，解耦权重衰减）** 是对 Adam 优化器的一种改进，出自论文 [Decoupled Weight Decay Regularization](https://arxiv.org/abs/1711.05101)（Loshchilov & Hutter，ICLR 2019）。它的核心思想是：**把权重衰减从梯度的动量统计中解耦出来，直接作用在权重上**，避免衰减项被 Adam 的自适应步长「扭曲」。由于泛化更好、超参更稳，AdamW 已成为大模型预训练的事实默认优化器（GPT、LLaMA、Qwen 等均采用）。
 
 | **项目** | **Adam（耦合 L2）** | **AdamW（解耦 L2）** | **备注（作用说明）** |
 |---|---|---|---|
@@ -77,28 +77,28 @@ $`\boldsymbol{\theta}_t \leftarrow \boldsymbol{\theta}_{t-1}\,(1 - \eta\,\lambda
 
 ```python
 def step(self) -> None:
-        for i, p in enumerate(self.params):
-            if p.grad is None:
-                continue
-            g = p.grad
-            self.t[i] += 1
-            t = self.t[i]
-            # 1) 解耦的权重衰减: 直接缩放参数（不进 m/v，系数是 lr 不是 step_size）
-            p.data.mul_(1 - self.lr * self.wd)
-            # 2) 一阶矩 / 二阶矩 （指数滑动平均）
-            self.m[i] = self.beta1 * self.m[i] + (1 - self.beta1) * g
-            self.v[i] = self.beta2 * self.v[i] + (1 - self.beta2) * g * g
-            # 3) Adam 更新:
-            step_size = self.lr / (1 - self.beta1 ** t) # step_size 合并了一阶矩 偏差修正
-            denom = (self.v[i] / (1 - self.beta2) ** t).sqrt() + self.eps
-            p.data.addcdiv_(self.m[i], denom, value=-step_size)
+   for i, p in enumerate(self.params):
+      if p.grad is None:
+            continue
+      g = p.grad
+      self.t[i] += 1
+      t = self.t[i]
+      # 1) 解耦的权重衰减: 直接缩放参数（不进 m/v，系数是 lr 不是 step_size）
+      p.data.mul_(1 - self.lr * self.wd)
+      # 2) 一阶矩 / 二阶矩 （指数滑动平均）
+      self.m[i] = self.beta1 * self.m[i] + (1 - self.beta1) * g
+      self.v[i] = self.beta2 * self.v[i] + (1 - self.beta2) * g * g
+      # 3) Adam 更新:
+      step_size = self.lr / (1 - self.beta1 ** t) # step_size 合并了一阶矩 偏差修正
+      denom = (self.v[i] / (1 - self.beta2) ** t).sqrt() + self.eps
+      p.data.addcdiv_(self.m[i], denom, value=-step_size)
 ```
 
 ## 权重衰减：定义与作用
 
 ### 什么是权重衰减
 
-**权重衰减（weight decay）**是正则化的一种直接实现：**每次更新时把权重按固定比例缩小**。经典形式（SGD 下）为：
+**权重衰减（weight decay）** 是正则化的一种直接实现：**每次更新时把权重按固定比例缩小**。经典形式（SGD 下）为：
 
 $`\boldsymbol{\theta}_t \leftarrow \boldsymbol{\theta}_{t-1}\,(1 - \eta\,\lambda)`$
 
@@ -117,8 +117,6 @@ $`\boldsymbol{\theta}_t \leftarrow \boldsymbol{\theta}_{t-1}\,(1 - \eta\,\lambda
 对 SGD，权重衰减与 L2 正则（在损失中加入 $`\frac{\lambda}{2}\lVert\boldsymbol{\theta}\rVert^2`$）**数学等价**：L2 的梯度项 $`\lambda\,\boldsymbol{\theta}`$ 被学习率缩放后与直接衰减完全一致。但对 Adam 等自适应优化器，**二者不等价**：L2 项混入梯度后会进入 $`\mathbf{m}`$、$`\mathbf{v}`$ 并被 $`1/\sqrt{\hat{\mathbf{v}}}`$ 缩放，衰减行为被破坏——这正是 AdamW 要解决的问题。
 
 ## 代码实现
-
-代码：<https://github.com/donglinAI/ai-from-scratch/blob/main/07-adamw/adamw.py>
 
 我们实现的 AdamW 和 `torch.optim` 的结果 diff 极小，符合预期：
 
