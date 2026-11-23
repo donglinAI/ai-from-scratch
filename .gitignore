@@ -9,3 +9,6 @@ logs/
 
 # IDE / 编辑器
 .vscode/
+
+# 权重文件
+*.pt
