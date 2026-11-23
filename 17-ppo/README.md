@@ -87,13 +87,20 @@ s_{t+1}=f(s_t,a_t)\ \ (\text{确定型}),\qquad s_{t+1}\sim P(\cdot\mid s_t,a_t)
 1. **策略输出的是概率分布，采样而不是取最大值。** 训练和推理都按分布采样，这样才有探索性，也才能让"提升某个动作概率"这件事有意义。取 argmax 就退化成贪心，策略梯度无从谈起。
 2. **优化目标是长期回报，不是单步奖励。** 立刻吃到金币不一定最优，可能要牺牲眼前收益换取后面的通关。
 
+**符号约定**：本文只用 $`\pi_\theta`$ 一个符号表示策略，避免 $`P`$ 与 $`\pi`$ 混用。它有两种粒度：
+
+- $`\pi_\theta(a\mid s)`$：给定状态 $`s`$ 时选动作 $`a`$ 的**条件概率**，也就是单步策略；
+- $`\pi_\theta(\tau)`$：整条轨迹 $`\tau`$ 被采样出来的**概率**，由单步策略与环境转移连乘得到（2.2 会展开）。
+
+两者不是两个不同的东西，而是同一个策略在不同粒度上的概率。本文所有 $`\pi_\theta(\tau)`$ 都指后者。
+
 训练目标写成期望（期望介绍[第 12 章](#12-附录期望偏差与方差)）形式：
 
 ```math
-J(\theta)=\mathbb{E}_{\tau\sim\pi_\theta}\left[R(\tau)\right]=\sum_{\tau}P_\theta(\tau)\,R(\tau)
+J(\theta)=\mathbb{E}_{\tau\sim\pi_\theta}\left[R(\tau)\right]=\sum_{\tau}\pi_\theta(\tau)\,R(\tau)
 ```
 
-其中 $`R(\tau)`$ 是整条轨迹的总回报，$`P_\theta(\tau)`$ 是这条轨迹被策略生成出来的概率。目标是**最大化**它，所以用梯度上升。
+其中 $`R(\tau)`$ 是整条轨迹的总回报，$`\pi_\theta(\tau)`$ 是这条轨迹被策略生成出来的概率。目标是**最大化**它，所以用梯度上升。
 
 ---
 
@@ -101,44 +108,76 @@ J(\theta)=\mathbb{E}_{\tau\sim\pi_\theta}\left[R(\tau)\right]=\sum_{\tau}P_\thet
 
 ### 2.1 第一步：梯度推到期望里面
 
-$`R(\tau)`$ 与 $`\theta`$ 无关，只有 $`P_\theta(\tau)`$ 与参数有关，于是梯度可以直接作用在概率上：
+$`R(\tau)`$ 与 $`\theta`$ 无关，只有轨迹概率 $`\pi_\theta(\tau)`$ 与参数有关。把它代回 1.4 的目标函数，对 $`\theta`$ 求梯度，下面一行都不省：
 
 ```math
-\nabla_\theta J(\theta)=\nabla_\theta\sum_{\tau}P_\theta(\tau)R(\tau)=\sum_{\tau}\nabla_\theta P_\theta(\tau)\,R(\tau)
+\begin{aligned}
+\nabla_\theta J(\theta)
+&=\nabla_\theta\sum_{\tau}\pi_\theta(\tau)\,R(\tau) &&\text{① 期望按定义展开}\\
+&=\sum_{\tau}R(\tau)\,\nabla_\theta\pi_\theta(\tau) &&\text{② 梯度进求和，}R\text{ 视为常数}\\
+&=\sum_{\tau}R(\tau)\,\nabla_\theta\pi_\theta(\tau)\,\frac{\pi_\theta(\tau)}{\pi_\theta(\tau)} &&\text{③ 乘一除一，值不变}\\
+&=\sum_{\tau}\pi_\theta(\tau)\,R(\tau)\,\frac{\nabla_\theta\pi_\theta(\tau)}{\pi_\theta(\tau)} &&\text{④ 交换乘法顺序}\\
+&=\sum_{\tau}\pi_\theta(\tau)\,R(\tau)\,\nabla_\theta\log\pi_\theta(\tau) &&\text{⑤ 对数求导法则}\\
+&=\mathbb{E}_{\tau\sim\pi_\theta}\left[R(\tau)\,\nabla_\theta\log\pi_\theta(\tau)\right] &&\text{⑥ 回到期望定义}
+\end{aligned}
 ```
 
-这里用到一个恒等式（log-derivative trick）：
+**每一步在做什么**
+
+**① 期望按定义展开**：期望就是"每个结果的取值 × 这个结果的概率"求和，所以 $`\mathbb{E}_{\tau\sim\pi_\theta}[R(\tau)]=\sum_{\tau}\pi_\theta(\tau)R(\tau)`$。这一步只是改写形式，没有近似。
+
+**② 梯度进求和**：$`\nabla_\theta`$ 是线性算子，有限项求和可以逐项求导；$`R(\tau)`$ 是采样得到的实际回报，与 $`\theta`$ 无关，当作常数系数提到前面。
+
+**③ 凭空乘一个 $`\pi_\theta(\tau)/\pi_\theta(\tau)`$**：同除同一个非零量，值完全不变，目的是把 $`\nabla_\theta\pi_\theta(\tau)`$ 凑成 $`\nabla_\theta\pi_\theta(\tau)/\pi_\theta(\tau)`$ 的形状，好让下一步换成对数。前提是 $`\pi_\theta(\tau)>0`$，也就是这条轨迹确实能被采到。
+
+**④ 换个乘法顺序**：把 $`\pi_\theta(\tau)`$ 提到最前面，只是交换律，好处是它正好对上 ⑥ 里期望的权重。
+
+**⑤ 对数求导法则（这一步是全篇的关键）**：对任意 $`f(\theta)>0`$，
 
 ```math
-\nabla_\theta P_\theta(\tau)=P_\theta(\tau)\,\nabla_\theta\log P_\theta(\tau)
+\frac{d}{d\theta}\ln f(\theta)=\frac{1}{f(\theta)}\cdot\frac{df(\theta)}{d\theta}
+\quad\Longrightarrow\quad
+\nabla_\theta\log f(\theta)=\frac{\nabla_\theta f(\theta)}{f(\theta)}
 ```
 
-代入就得到**期望形式**，也就是可以用采样估计的形式：
+它来自复合函数求导：$`\ln f`$ 的导数是 $`1/f`$，再乘内层 $`f`$ 对 $`\theta`$ 的导数。取 $`f(\theta)=\pi_\theta(\tau)`$，即
 
 ```math
-\nabla_\theta J(\theta)=\mathbb{E}_{\tau\sim\pi_\theta}\left[R(\tau)\,\nabla_\theta\log P_\theta(\tau)\right]
+\nabla_\theta\log\pi_\theta(\tau)=\frac{\nabla_\theta\pi_\theta(\tau)}{\pi_\theta(\tau)}
 ```
 
-这一步是全篇最关键的一次变形：**"对概率求梯度" 变成了 "在采样上对 log 概率求梯度加权平均"**，于是梯度可以被蒙特卡洛估计。
+所以 ④ 末尾那个分式可以直接改写为 $`\nabla_\theta\log\pi_\theta(\tau)`$。这就是 log-derivative trick 的全部内容——**它不是一个额外假设，只是对数求导法则的移项**。
+
+**⑥ 求和回到期望**：$`\sum_{\tau}\pi_\theta(\tau)\,g(\tau)`$ 正是 $`g(\tau)`$ 在分布 $`\pi_\theta`$ 下的期望，这里 $`g(\tau)=R(\tau)\nabla_\theta\log\pi_\theta(\tau)`$。
+
+实际训练时这个期望算不出来（轨迹无穷多），用 $`N`$ 条采样取平均近似：
+
+```math
+\nabla_\theta J(\theta)\approx\frac{1}{N}\sum_{n=1}^{N}R(\tau^n)\,\nabla_\theta\log\pi_\theta(\tau^n),\qquad \tau^n\sim\pi_\theta(\tau)
+```
+
+采样均值是期望的无偏估计，依据是"采样次数越多，均值越接近期望"（第 12 章的算例给出了具体数字）。
+
+至此完成全篇最关键的一次变形：**"对概率求梯度" 变成了 "在采样上对 log 概率求梯度加权平均"**，于是梯度可以被蒙特卡洛估计。顺带还有一个工程好处：轨迹概率是几十个概率连乘，早就下溢成 0，取 log 后变成连加，数值稳定得多。
 
 ### 2.2 第二步：把轨迹概率拆成每一步
 
 轨迹的联合概率是"初始状态分布 × 每一步的策略概率 × 每一步的环境转移概率"：
 
 ```math
-P_\theta(\tau)=\rho(s_0)\prod_{t=0}^{T}\pi_\theta(a_t\mid s_t)\,p(s_{t+1}\mid s_t,a_t)
+\pi_\theta(\tau)=\rho(s_0)\prod_{t=0}^{T}\pi_\theta(a_t\mid s_t)\,p(s_{t+1}\mid s_t,a_t)
 ```
 
 取 log 后连乘变连加：
 
 ```math
-\log P_\theta(\tau)=\log\rho(s_0)+\sum_{t=0}^{T}\log\pi_\theta(a_t\mid s_t)+\sum_{t=0}^{T}\log p(s_{t+1}\mid s_t,a_t)
+\log \pi_\theta(\tau)=\log\rho(s_0)+\sum_{t=0}^{T}\log\pi_\theta(a_t\mid s_t)+\sum_{t=0}^{T}\log p(s_{t+1}\mid s_t,a_t)
 ```
 
 再对 $`\theta`$ 求梯度。**初始分布 $`\rho(s_0)`$ 和环境转移 $`p(s'\mid s,a)`$ 都不含 $`\theta`$，梯度为 0**，所以整串只剩下策略项：
 
 ```math
-\nabla_\theta\log P_\theta(\tau)=\sum_{t=0}^{T}\nabla_\theta\log\pi_\theta(a_t\mid s_t)
+\nabla_\theta\log \pi_\theta(\tau)=\sum_{t=0}^{T}\nabla_\theta\log\pi_\theta(a_t\mid s_t)
 ```
 
 代回 2.1 的期望式：
@@ -510,7 +549,7 @@ $`\varepsilon`$ 通常取 0.2。这个目标不是"惩罚偏离"，而是**直�
 | 公式 | 名称 | 一句话含义 | 代码位置 |
 | --- | --- | --- | --- |
 | $`J(\theta)=\mathbb{E}_{\tau\sim\pi_\theta}[R(\tau)]`$ | 训练目标 | 让高回报轨迹出现的概率变大 | — |
-| $`\nabla J=\mathbb{E}[R(\tau)\nabla\log P_\theta(\tau)]`$ | 策略梯度 | 把"对概率求导"换成"对 log 概率求导" | `policy_loss` 的祖先 |
+| $`\nabla J=\mathbb{E}[R(\tau)\nabla\log \pi_\theta(\tau)]`$ | 策略梯度 | 把"对概率求导"换成"对 log 概率求导" | `policy_loss` 的祖先 |
 | $`G_t=\sum_{t'=t}\gamma^{t'-t}r_{t'}`$ | 折扣回报 | 只算当前步往后的奖励，远期打折 | 替代 $`R(\tau)`$ |
 | $`A=Q-V`$ | 优势函数 | 这个动作比该状态平均水平好多少 | `advantages` |
 | $`\delta_t=r_t+\gamma V(s_{t+1})-V(s_t)`$ | TD 误差 | 一步之内"实际比预期好多少" | `compute_gae` 的 `delta` |
