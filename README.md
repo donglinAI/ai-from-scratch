@@ -1,73 +1,108 @@
-# AI From Scratch
+<p align="center">
+  <h1 align="center">AI From Scratch</h1>
+  <p align="center">
+    <b>手写 AI 核心算法 · 每个文件夹一个独立算法单元</b>
+    <br/>
+    <i>原理讲清楚，代码能跑通，数值对得上。</i>
+  </p>
+</p>
 
-**从数学原理到可运行代码，手写跨模态 AI 核心算法。**
+<p align="center">
+  <a href="https://www.python.org/"><img src="https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white" alt="Python"></a>
+  <a href="https://pytorch.org/"><img src="https://img.shields.io/badge/PyTorch-Deep%20Learning-EE4C2C?logo=pytorch&logoColor=white" alt="PyTorch"></a>
+  <a href="./LICENSE"><img src="https://img.shields.io/badge/License-MIT-green.svg" alt="License"></a>
+  <a href="https://github.com/donglinAI/ai-from-scratch/stargazers"><img src="https://img.shields.io/github/stars/donglinAI/ai-from-scratch?style=social" alt="Stars"></a>
+  <a href="https://github.com/donglinAI/ai-from-scratch/network/members"><img src="https://img.shields.io/github/forks/donglinAI/ai-from-scratch?style=social" alt="Forks"></a>
+</p>
 
-[![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
-[![PyTorch](https://img.shields.io/badge/PyTorch-Deep%20Learning-EE4C2C?logo=pytorch&logoColor=white)](https://pytorch.org/)
-[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![GitHub Stars](https://img.shields.io/github/stars/donglinAI/ai-from-scratch?style=social)](https://github.com/donglinAI/ai-from-scratch/stargazers)
+---
 
-一个面向 **AI 基础算法与核心模型** 的手写复现项目。项目使用 Python 和 PyTorch，从自动微分、网络组件、优化算法等基础能力出发，逐步扩展到大语言模型、计算机视觉、多模态、图像生成与 Diffusion 等方向。
+## 这是什么
 
-项目的目标不是复现某一个模型，而是建立一套**跨模态、跨任务、可持续扩展的 AI 手写算法体系**：既拆解 Llama、ViT 等具体模型，也实现它们背后可复用的基础算法，重点讲清楚三个问题：
+这是一个**手写 AI 核心算法的独立单元合集**。每个文件夹对应一个算法或模型，自成一个完整的、可独立取用的单元：
 
-1. **数学公式如何转化为代码**：保留关键计算步骤、张量形状和梯度传播过程。
-2. **模型组件如何协同工作**：从 RoPE、Attention、RMSNorm 等基础组件，走到完整模型训练或推理链路。
-3. **实现结果如何验证**：通过内置断言、参考实现对照、数值检查和可视化实验检验正确性。
+```
+<模块目录>/
+├── README.md     # 算法原理：公式推导、直觉解释、对照验证
+└── *.py          # 实现代码：单文件、少封装、可直接运行
+```
 
-本项目以学习和复现为目标，不追求替代生产级训练或推理框架。代码尽量保持单文件、少封装、可运行，适合逐行阅读和二次修改。
+它**不是一门按顺序学习的课程**，而是一个可以随手翻开的**算法货架**——你想看 RoPE 就看 RoPE，想看 PPO 就看 PPO，每个单元都不依赖其他单元，读哪个、跑哪个都行。
 
-## 项目特点
+每个模块都围绕同一套标准来写，回答三件事：
 
-- **跨领域算法版图**：覆盖深度学习基础、大语言模型、计算机视觉，并持续扩展多模态、图像生成与 Diffusion。
-- **从零实现核心算法**：不局限于调用现成模型，重点手写自动微分、注意力、归一化、优化器、损失函数及生成模型关键组件。
-- **贯通完整模型链路**：既提供可独立阅读的最小算法实现，也逐步拆解完整模型的数据流、训练与推理过程。
-- **重视数值正确性**：部分模块与 PyTorch 或 Hugging Face 参考实现进行对照，并提供可直接运行的自检脚本。
-- **兼顾理论与直觉**：结合中文笔记、公式推导、张量形状注释和可视化结果，降低底层原理的理解成本。
-- **配套视频讲解**：以“理论推导 + 代码实现”的方式持续更新，方便按模块系统学习。
+1. **公式怎么变成代码**——保留关键计算步骤、张量形状和梯度传播过程；
+2. **组件怎么协同工作**——从最小算子走到能跑的完整链路；
+3. **结果怎么验证正确**——内置断言、参考实现对照、数值检查和可视化实验。
 
-## 内容版图
+代码尽量保持**单文件、少封装、可运行**，适合逐行阅读、二次修改和借鉴到自己项目里。如果能帮到同样在啃这些算法的你，就是它最大的价值。
 
-下表区分当前代码与后续方向，避免将规划内容误认为已经实现：
+## 架构总览
 
-| 方向 | 当前进展 | 已覆盖或计划实现的内容 |
-|:---|:---|:---|
-| AI 数学与深度学习基础 | 已覆盖，持续补充 | 自动微分、反向传播、激活函数、归一化、损失函数、优化器、学习率调度 |
-| 大语言模型 | 已覆盖，持续扩展 | BPE、RoPE、MHA / GQA、SwiGLU、KV Cache、Llama 3.1 推理，以及后续训练与对齐算法 |
-| 计算机视觉 | 已起步 | Vision Transformer；后续扩展 CNN、ResNet、目标检测、图像分割等基础算法 |
-| 多模态 | 规划中 | 跨模态注意力、对比学习、CLIP、视觉语言模型，以及图文检索与理解 |
-| 图像生成与 Diffusion | 规划中 | VAE、GAN、U-Net、DDPM、DDIM、Latent Diffusion、Stable Diffusion 等核心原理与最小复现 |
-| 训练与推理系统 | 规划中 | 分布式训练、混合精度、量化、推理加速，以及 CUDA / Triton 算子 |
+```mermaid
+graph TB
+    AFS["<b>AI From Scratch</b><br/>手写算法货架"]
 
-## 模块导航
+    AFS --> F1["深度学习基础"]
+    AFS --> F2["Transformer 组件"]
+    AFS --> F3["完整模型"]
+    AFS --> F4["强化学习与对齐"]
+    AFS --> F5["工程与文档"]
 
-| 模块 | 主题 | 当前内容 |
-|:---|:---|:---|
-| [01](./01-backpropagation-from-scratch) | 反向传播与自动微分 | 手写标量计算图、拓扑排序与反向传播，并用 MLP 求解 XOR 问题；提供 PyTorch 对照实现 |
-| [02](./02-rotary-position-embedding) | 旋转位置编码 RoPE | 标准 RoPE、Llama 3.1 三段式频率缩放、频率曲线可视化与中文推导笔记 |
-| [03](./03-self-attention) | 自注意力机制 | MHA / GQA、RoPE、因果掩码与缩放点积注意力；提供 Hugging Face 数值对照 |
-| [04](./04-rms-norm) | RMSNorm | RMSNorm / LayerNorm、PreNorm / PostNorm 对比实验，以及 RMSNorm 解析梯度推导 |
-| [05](./05-relu) | ReLU | 自定义 `autograd.Function` 前向与反向传播、激活曲线和死亡神经元实验 |
-| [06](./06-swiglu) | SwiGLU | 门控前馈网络、SiLU 性质、激活与梯度曲线，以及与 Llama MLP 的数值对照 |
-| [07](./07-adamw) | AdamW | 一阶矩、二阶矩、偏差修正与解耦权重衰减；与 `torch.optim.AdamW` 对照 |
-| [08](./08-lr-scheduler) | 学习率调度 | Linear Warmup、Cosine Decay、多参数组与调度器状态保存 / 恢复 |
-| [09](./09-cross-entropy-loss) | 交叉熵与 Focal Loss | 类别权重、`ignore_index`、Label Smoothing、Focal Loss，以及信息论可视化 |
-| [10](./10-llama-from-scratch) | Llama 3.1 推理 | GQA、RoPE Scaling、RMSNorm、SwiGLU、KV Cache、Safetensors 权重加载与文本生成 |
-| [11](./11-vit-from-scratch) | Vision Transformer | Patch Embedding、CLS Token、位置编码、Pre-LN Transformer Block 与分类头 |
-| [12](./12-environment) | 开发环境 | AutoDL 初始化脚本，以及 Git / GitHub 配置说明 |
-| [13](./13-bpe) | BPE 分词器 | 字节级 BPE 训练、编码、解码、词表保存与加载 |
-| [14](./14-kv-cache) | KV Cache | 静态缓存、Prefill / Decode、因果掩码，以及增量解码与全量重算的一致性检查 |
+    F1 --> F1a["反向传播 · RMSNorm · ReLU · SwiGLU<br/>AdamW · 学习率调度 · 交叉熵"]
+    F2 --> F2a["RoPE · 自注意力 · BPE<br/>KV Cache · RoPE YaRN"]
+    F3 --> F3a["Llama 3.1 · ViT"]
+    F4 --> F4a["PPO · GRPO · LoRA"]
+    F5 --> F5a["开发环境 · ms-swift 文档"]
+```
 
-## 推荐学习路径与扩展路线
+## 算法目录
 
-1. **AI 基础**：`01 → 05 → 09`，理解计算图、梯度、激活函数与损失函数。
-2. **Transformer 核心组件**：`02 → 03 → 04 → 06`，掌握语言、视觉与多模态模型共同使用的基础模块。
-3. **训练算法**：`07 → 08`，理解参数更新与学习率变化如何影响训练过程。
-4. **大语言模型**：`13 → 14 → 10`，串联分词、缓存、模型结构和文本生成流程。
-5. **视觉与多模态**：从 `11` 的 ViT 开始，后续扩展到视觉骨干网络、跨模态对齐和视觉语言模型。
-6. **图像生成与 Diffusion**：从 Autoencoder、VAE 和 U-Net 等基础组件出发，逐步进入 DDPM、DDIM 与 Latent Diffusion 的完整生成流程。
+> 状态说明：✅ 已实现 · 🚧 筹备中
 
-可以按上述路线系统学习，也可以从一个具体模型出发，沿其计算流程回到对应的基础算法。例如，从 [Llama 3.1 单文件实现](./10-llama-from-scratch/llama31_inference.py) 入手，再回溯 RoPE、Attention、RMSNorm、SwiGLU 与 KV Cache。
+### 深度学习基础
+
+| 模块 | 一句话说明 |
+|:---|:---|
+| [01 · 反向传播与自动微分](./01-backpropagation-from-scratch) ✅ | 纯 Python 手写标量计算图、拓扑排序与反向传播，用 MLP 求解 XOR，附 PyTorch 对照 |
+| [04 · RMSNorm](./04-rms-norm) ✅ | RMSNorm / LayerNorm、PreNorm / PostNorm 对比实验，以及解析梯度推导 |
+| [05 · ReLU](./05-relu) ✅ | 自定义 `autograd.Function` 前向与反向、激活曲线、死亡神经元实验 |
+| [06 · SwiGLU](./06-swiglu) ✅ | 门控前馈网络、SiLU 性质、激活与梯度曲线，与 Llama MLP 数值对照 |
+| [07 · AdamW](./07-adamw) ✅ | 一阶矩、二阶矩、偏差修正与解耦权重衰减，与 `torch.optim.AdamW` 对照 |
+| [08 · 学习率调度](./08-lr-scheduler) ✅ | Linear Warmup、Cosine Decay、多参数组与调度器状态保存 / 恢复 |
+| [09 · 交叉熵与 Focal Loss](./09-cross-entropy-loss) ✅ | 类别权重、`ignore_index`、Label Smoothing、Focal Loss，以及信息论可视化 |
+
+### Transformer 组件
+
+| 模块 | 一句话说明 |
+|:---|:---|
+| [02 · 旋转位置编码 RoPE](./02-rotary-position-embedding) ✅ | 标准 RoPE、Llama 3.1 频率缩放、频率曲线可视化与中文推导笔记 |
+| [03 · 自注意力机制](./03-self-attention) ✅ | MHA / GQA、因果掩码、缩放点积注意力，与 Hugging Face 数值对照 |
+| [13 · BPE 分词器](./13-bpe) ✅ | 字节级 BPE 训练、编码、解码、词表保存与加载 |
+| [14 · KV Cache](./14-kv-cache) ✅ | 静态缓存、Prefill / Decode、因果掩码，以及增量解码与全量重算一致性检查 |
+| [19 · RoPE YaRN 缩放](./19-rope-yarn) ✅ | Llama-3.1 三段式 RoPE 缩放（8K → 128K），完整数学推导 + 最小可运行实现 |
+
+### 完整模型
+
+| 模块 | 一句话说明 |
+|:---|:---|
+| [10 · Llama 3.1 推理](./10-llama-from-scratch) ✅ | GQA、RoPE Scaling、RMSNorm、SwiGLU、KV Cache、Safetensors 权重加载与文本生成 |
+| [11 · Vision Transformer](./11-vit-from-scratch) ✅ | Patch Embedding、CLS Token、位置编码、Pre-LN Transformer Block 与分类头 |
+
+### 强化学习与对齐
+
+| 模块 | 一句话说明 |
+|:---|:---|
+| [17 · PPO](./17-ppo) ✅ | 从策略梯度到 GAE、重要性采样、Clip 截断的完整推导，CartPole 单文件从零训练到满分 |
+| [15 · LoRA](./15-lora) 🚧 | 低秩适配微调（参数高效微调），筹备中 |
+| [18 · GRPO](./18-grpo) 🚧 | 分组相对策略优化，筹备中 |
+
+### 工程与文档
+
+| 模块 | 一句话说明 |
+|:---|:---|
+| [12 · 开发环境](./12-environment) ✅ | AutoDL 初始化脚本，以及 Git / GitHub 配置说明 |
+| [16 · ms-swift 文档](./16-ms-swift-doc) ✅ | ms-swift 框架的完整文档与最佳实践 |
 
 ## 快速开始
 
@@ -89,58 +124,53 @@ python -m pip install --upgrade pip
 pip install torch numpy matplotlib
 ```
 
-如需 GPU，请根据 CUDA 版本选择对应的 [PyTorch 安装命令](https://pytorch.org/get-started/locally/)。
-
-Llama 推理及部分参考实现对齐实验还需要以下依赖：
+如需 GPU，请根据 CUDA 版本选择对应的 [PyTorch 安装命令](https://pytorch.org/get-started/locally/)。Llama 推理及部分参考实现对照还需要：
 
 ```bash
 pip install transformers safetensors modelscope
 ```
 
-### 3. 运行模块示例
-
-大多数脚本都可以直接执行。包含本地导入的脚本，建议先进入对应目录再运行。
+PPO 模块额外依赖：
 
 ```bash
+pip install gymnasium
+```
+
+### 3. 运行某个模块
+
+大多数脚本可以直接执行；包含本地导入的脚本，建议先进入对应目录再运行。
+
+```bash
+# 反向传播：纯 Python 手写自动微分，求解 XOR
+cd 01-backpropagation-from-scratch
+python xor_python.py
+
 # RoPE：标准实现与 Llama 3.1 频率缩放
-cd 02-rotary-position-embedding
+cd ../02-rotary-position-embedding
 python rope.py
-python rope_llama3.py
 
-# MHA / GQA 自注意力
-cd ../03-self-attention
-python attention.py
-
-# BPE：训练、编码、解码及保存 / 加载自检
-cd ../13-bpe
-python bpe.py
-
-# KV Cache：增量解码与全量重算一致性检查
-cd ../14-kv-cache
-python kv_cache.py
+# PPO：CartPole 从零训练
+cd ../17-ppo
+python ppo.py
 ```
 
 ## Llama 3.1：从权重加载到文本生成
 
-[llama31_inference.py](./10-llama-from-scratch/llama31_inference.py) 将完整推理链路集中在一个文件中，便于按顺序阅读：
+[llama31_inference.py](./10-llama-from-scratch/llama31_inference.py) 将完整推理链路集中在一个文件中：
 
 ```text
 配置解析 → RoPE / GQA / RMSNorm / SwiGLU → Decoder Layer
         → Safetensors 分片权重加载 → Prefill → KV Cache 增量解码 → 采样输出
 ```
 
-### 数值自检
-
-使用 Tiny 配置，无需下载真实模型权重：
+用 Tiny 配置做数值自检（无需下载真实权重）：
 
 ```bash
 cd 10-llama-from-scratch
 python llama31_inference.py --check
 ```
 
-自检覆盖 RoPE、整模型 Logits、KV Cache 增量解码、Greedy 生成和采样复现，并在相应环节与 Hugging Face 实现进行对照。
-
-### 真实模型推理
+真实模型推理：
 
 ```bash
 python llama31_inference.py \
@@ -150,31 +180,11 @@ python llama31_inference.py \
   --stats
 ```
 
-默认从 ModelScope 获取 `LLM-Research/Meta-Llama-3.1-8B-Instruct`。也可以通过 `--model` 指定本地权重目录：
-
-```bash
-python llama31_inference.py \
-  --model /path/to/Meta-Llama-3.1-8B-Instruct \
-  --prompt "解释 KV Cache 的作用。" \
-  --device cuda
-```
-
-真实 8B 模型对磁盘、内存或显存要求较高，请根据硬件条件选择运行方式；模型下载与使用还需遵守对应模型许可。
-
-## 实现验证
-
-仓库当前以**脚本内置自检和参考实现对照**为主，不同模块采用适合其内容的验证方式：
-
-- **数值对齐**：Attention、SwiGLU、Llama 3.1 与 Hugging Face 参考实现对照；AdamW、学习率调度器和交叉熵与 PyTorch 实现对照。
-- **一致性断言**：BPE 编解码与保存 / 加载往返检查；KV Cache 增量解码与全量重算结果检查。
-- **形状与梯度检查**：ViT 输出形状、自定义 ReLU 梯度、RMSNorm 解析梯度等。
-- **可视化实验**：RoPE 频率缩放、PreNorm / PostNorm、激活函数、学习率曲线和交叉熵相似度等。
-
-部分参考实现对照依赖特定版本的 Transformers 接口。如遇接口差异，请先检查本地依赖版本，再定位对应模块的对齐代码。
+默认从 ModelScope 获取 `LLM-Research/Meta-Llama-3.1-8B-Instruct`，也可通过 `--model` 指定本地权重目录。真实 8B 模型对磁盘、内存或显存要求较高，模型下载与使用还需遵守对应模型许可。
 
 ## 配套讲解视频
 
-理论篇侧重公式、直觉和推导，代码篇侧重实现细节与调试过程；尚未发布的模块不在表格中放置空链接。
+每个模块都尽量配套「理论篇 + 代码篇」讲解，理论篇侧重公式与直觉，代码篇侧重实现细节与调试过程。
 
 | 模块 | 理论讲解 | 代码讲解 |
 |:---|:---|:---|
@@ -188,19 +198,17 @@ python llama31_inference.py \
 
 ## 后续规划
 
-项目会持续补充不同领域的 AI 基础手写算法。以下方向尚未在当前仓库中完整实现，欢迎通过 Issue 一起讨论优先级：
+以下方向尚未在当前仓库中实现，欢迎通过 Issue 一起讨论优先级：
 
-- **计算机视觉**：CNN、ResNet、目标检测、图像分割与视觉预训练。
-- **多模态**：CLIP、跨模态注意力、图文检索、视觉语言模型与多模态对齐。
-- **图像生成**：Autoencoder、VAE、GAN、U-Net 与图像生成质量评估。
-- **Diffusion**：前向加噪与反向去噪、DDPM、DDIM、Classifier-Free Guidance、Latent Diffusion 和 Stable Diffusion 最小复现。
-- **训练与对齐**：分布式训练、混合精度、梯度累积、Checkpoint、RLHF、DPO 与奖励模型。
+- **计算机视觉**：CNN、ResNet、目标检测、图像分割与视觉预训练；
+- **多模态**：CLIP、跨模态注意力、图文检索、视觉语言模型与多模态对齐；
+- **图像生成与 Diffusion**：Autoencoder、VAE、GAN、U-Net、DDPM、DDIM、Latent Diffusion 与 Stable Diffusion 最小复现；
+- **训练与对齐**：分布式训练、混合精度、梯度累积、Checkpoint、RLHF、DPO 与奖励模型；
 - **推理与算子**：连续批处理、PagedAttention、量化、CUDA / Triton 算子。
-- **工程质量**：统一依赖管理、自动化测试与持续集成。
 
 ## 参与贡献
 
-欢迎提交 Issue 或 Pull Request。尤其欢迎以下类型的贡献：
+欢迎提交 Issue 或 Pull Request，尤其欢迎：
 
 - 修复公式、代码、注释或视频中的错误；
 - 补充边界条件、数值测试和最小复现示例；
@@ -217,4 +225,4 @@ python llama31_inference.py \
 
 感谢 [PyTorch](https://pytorch.org/)、[Hugging Face Transformers](https://github.com/huggingface/transformers) 与 [ModelScope](https://github.com/modelscope/modelscope) 等开源项目提供的参考实现和工具支持。
 
-如果这个项目帮助你把某个抽象概念真正写成了代码，欢迎 Star、交流或提出改进建议。
+如果这个项目帮你把某个抽象概念真正写成了代码，欢迎 Star、交流或提出改进建议。
