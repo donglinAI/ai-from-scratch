@@ -257,6 +257,9 @@ $`\gamma`$ 的作用：越远的奖励权重指数衰减，等效于"缩短有�
 
 ### 3.2 改进二：减去基线
 
+![好的局势vs坏的局势](assets/good_bad_state.png)
+
+
 **先看清问题：不是分数不够大，而是区分度不够。**
 
 策略梯度的权重是回报，可回报的绝对值里混着"这个局面本身值多少分"这一层底色，动作之间的差异被它压扁了。
@@ -1274,3 +1277,11 @@ G_t=\sum_{k=0}^{T-t}\gamma^{k}r_{t+k}
 
 两者之间是可调的连续谱：n 步回报用 n 段真实奖励加末端 $`V`$，$`\lambda`$ 回报再对各阶 n 步回报做加权平均。4.9 里的 $`\hat{R}_t=G_t^{\lambda}`$ 就是这条谱上的一个点——**用真实奖励保证方向，用 V 自举压住方差**。
 
+
+## 参考
+
+[强化学习PPO](https://www.bilibili.com/video/BV1iz421h7gb?spm_id_from=333.788.videopod.sections&vd_source=beecb3df7fb908a1fa0f45200066df36)
+
+[王树森强化学习](https://www.bilibili.com/video/BV11jwszvEmY/?spm_id_from=333.1391.0.0&p=3&vd_source=beecb3df7fb908a1fa0f45200066df36)
+
+[强化学习RL基本原理](https://www.bilibili.com/video/BV1rooaYVEk8/?spm_id_from=333.1387.homepage.video_card.click&vd_source=beecb3df7fb908a1fa0f45200066df36)
