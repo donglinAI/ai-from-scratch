@@ -97,7 +97,7 @@ V(x)=\mathbb{E}_{o\sim\pi_{\theta_{\mathrm{old}}}}\left[R(x,o)\right]\;\approx\;
 记 prompt 为 $`x`$，策略生成的第 $`i`$ 条回答为
 
 ```math
-o_i=(o_{i,1},o_{i,2},\dots,o_{i,|o_i|}),\qquad o_{i,t}\sim\pi_\theta(\cdot\mid x,o_{i,<t})
+o_i=(o_{i,1},o_{i,2},\dots,o_{i,|o_i|}),\qquad o_{i,t}\sim\pi_\theta(\cdot\mid x,o_{i,\lt t})
 ```
 
 奖励由验证器给出一个标量 $`r_i=R(x,o_i)`$。$`R`$ 可以是：
@@ -114,7 +114,7 @@ GRPO 对这个 $`R`$ 只有一个要求：**同一条回答的所有 token 共�
 
 | RL 概念 | 在 LLM 生成里的对应物 |
 | --- | --- |
-| 状态 $`s_t`$ | prompt + 已生成的前缀 $`(x,o_{<t})`$ |
+| 状态 $`s_t`$ | prompt + 已生成的前缀 $`(x,o_{\lt t})`$ |
 | 动作 $`a_t`$ | 下一个 token $`o_t`$ |
 | 策略 $`\pi_\theta(a\mid s)`$ | 语言模型在上下文下的下一个 token 分布 |
 | 轨迹 / episode | 一整条回答 $`o`$ |
@@ -339,7 +339,7 @@ GRPO 的做法是**先按回答归一，再按组平均**：
 **序列级（论文式）**：整条回答的概率比
 
 ```math
-\rho_i(\theta)=\frac{\pi_\theta(o_i\mid x)}{\pi_{\theta_{\mathrm{old}}}(o_i\mid x)}=\prod_{t=1}^{|o_i|}\frac{\pi_\theta(o_{i,t}\mid x,o_{i,<t})}{\pi_{\theta_{\mathrm{old}}}(o_{i,t}\mid x,o_{i,<t})}
+\rho_i(\theta)=\frac{\pi_\theta(o_i\mid x)}{\pi_{\theta_{\mathrm{old}}}(o_i\mid x)}=\prod_{t=1}^{|o_i|}\frac{\pi_\theta(o_{i,t}\mid x,o_{i,\lt t})}{\pi_{\theta_{\mathrm{old}}}(o_{i,t}\mid x,o_{i,\lt t})}
 ```
 
 一条回答一个比值，clip 作用在这个乘积上，目标为
@@ -353,7 +353,7 @@ J_{\mathrm{seq}}(\theta)=\mathbb{E}\left[\frac{1}{G}\sum_{i=1}^{G}\min\left(\rho
 **token 级（主流工程实现，本文采用）**：把乘积拆开，逐 token 算比值、逐 token 截断
 
 ```math
-\rho_{i,t}(\theta)=\frac{\pi_\theta(o_{i,t}\mid x,o_{i,<t})}{\pi_{\theta_{\mathrm{old}}}(o_{i,t}\mid x,o_{i,<t})}=\exp\left(\log\pi_\theta(o_{i,t}\mid x,o_{i,<t})-\log\pi_{\theta_{\mathrm{old}}}(o_{i,t}\mid x,o_{i,<t})\right)
+\rho_{i,t}(\theta)=\frac{\pi_\theta(o_{i,t}\mid x,o_{i,\lt t})}{\pi_{\theta_{\mathrm{old}}}(o_{i,t}\mid x,o_{i,\lt t})}=\exp\left(\log\pi_\theta(o_{i,t}\mid x,o_{i,\lt t})-\log\pi_{\theta_{\mathrm{old}}}(o_{i,t}\mid x,o_{i,\lt t})\right)
 ```
 
 ```math
@@ -394,13 +394,13 @@ J_{\mathrm{GRPO}}(\theta)=\mathbb{E}_{x\sim\mathcal{D},\;\{o_i\}\sim\pi_{\theta_
 上面的目标可以求导。先看 clip 区间内部（$`1-\varepsilon_-<\rho<1+\varepsilon_+`$）：$`\min`$ 取的是第一项，而
 
 ```math
-\nabla_\theta\rho_{i,t}=\rho_{i,t}\nabla_\theta\log\pi_\theta(o_{i,t}\mid x,o_{i,<t})
+\nabla_\theta\rho_{i,t}=\rho_{i,t}\nabla_\theta\log\pi_\theta(o_{i,t}\mid x,o_{i,\lt t})
 ```
 
 （同样是对数求导法则 $`\nabla\log\pi=\nabla\pi/\pi`$，与 PPO 2.1 一致）。于是
 
 ```math
-\nabla_\theta J=\mathbb{E}\left[\frac{1}{G}\sum_i\frac{1}{|o_i|}\sum_t\rho_{i,t}\hat A_i\nabla_\theta\log\pi_\theta(o_{i,t}\mid x,o_{i,<t})\right]
+\nabla_\theta J=\mathbb{E}\left[\frac{1}{G}\sum_i\frac{1}{|o_i|}\sum_t\rho_{i,t}\hat A_i\nabla_\theta\log\pi_\theta(o_{i,t}\mid x,o_{i,\lt t})\right]
 ```
 
 **读法**：三项相乘。
@@ -446,7 +446,7 @@ GRPO 的奖励是"验证器判对错"。一个纯优化器会立刻发现：**�
 参考模型 $`\pi_{\mathrm{ref}}`$（通常是 SFT 之后的模型，冻结不动）提供一个锚点：**策略可以变好，但不能离它太远**。KL 项就是这把尺子：
 
 ```math
-\mathbb{D}_{\mathrm{KL}}\left(\pi_\theta(\cdot\mid x,o_{<t})\;\|\;\pi_{\mathrm{ref}}(\cdot\mid x,o_{<t})\right)
+\mathbb{D}_{\mathrm{KL}}\left(\pi_\theta(\cdot\mid x,o_{\lt t})\;\|\;\pi_{\mathrm{ref}}(\cdot\mid x,o_{\lt t})\right)
 ```
 
 对语言模型，KL 是逐 token 的分布散度，再按 token 平均。$`\beta`$ 控制约束强度：太小会 hack，太大学不动。
@@ -456,7 +456,7 @@ GRPO 的奖励是"验证器判对错"。一个纯优化器会立刻发现：**�
 KL 的真值要对整个词表求和，训练时只能采样估计。令
 
 ```math
-d_t=\log\pi_{\mathrm{ref}}(o_t\mid x,o_{<t})-\log\pi_\theta(o_t\mid x,o_{<t})
+d_t=\log\pi_{\mathrm{ref}}(o_t\mid x,o_{\lt t})-\log\pi_\theta(o_t\mid x,o_{\lt t})
 ```
 
 三种常见写法：
