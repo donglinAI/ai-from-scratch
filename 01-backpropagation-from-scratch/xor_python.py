@@ -218,4 +218,4 @@ if __name__ == "__main__":
         x = np.atleast_2d(np.asarray(x, dtype=float))
         return np.array([model(row).data for row in x])
     from utils import xor_solution_vis
-    xor_solution_vis.plot_xor_solution(x_data,y_data,predict,save_path="xor_solution_py.png")
+    xor_solution_vis.plot_xor_solution(x_data,y_data,predict,save_path="assets/xor_solution_py.png")

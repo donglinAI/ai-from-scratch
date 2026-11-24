@@ -44,4 +44,4 @@ def predict(x):
         return model(torch.tensor(x, dtype=torch.float32)).numpy().ravel()
 
 from utils import xor_solution_vis
-xor_solution_vis.plot_xor_solution(X,y,predict,save_path="xor_solution_pth.png")
+xor_solution_vis.plot_xor_solution(X,y,predict,save_path="assets/xor_solution_pth.png")
