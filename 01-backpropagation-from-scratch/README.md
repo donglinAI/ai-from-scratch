@@ -1,4 +1,4 @@
-# 01 · 反向传播与自动微分
+# 反向传播与自动微分
 
 用纯 Python 手写一个标量自动微分引擎，再用它从零搭建 MLP 解决 XOR 问题；最后给出 PyTorch 对照实现，验证两者训练结果一致。
 
@@ -28,7 +28,11 @@
 
 XOR 的四组样本 `(0,0)→0`、`(0,1)→1`、`(1,0)→1`、`(1,1)→0` 在二维平面上线性不可分——对角样本标签相同，任何一条直线都切不开。
 
-![](./assets/xor_problem.png)
+
+<p align="center">
+  <img src="./assets/xor_problem.png" alt="python" width="400">
+</p>
+
 
 所以这里的 MLP 采用 `2 → 3 → 1` 结构：3 个 `tanh` 隐藏神经元先把输入映射到可分空间，输出层再用 `sigmoid` 给出概率。隐藏层是这个例子的关键，也是后面所有深层模型的最小原型。
 
@@ -66,11 +70,20 @@ python xor_pytorch.py    # PyTorch 实现，2000 轮，lr=0.1
 
 ### 手写实现
 
-![](./assets/xor_solution_py.png)
+
+<p align="center">
+  <img src="./assets/xor_solution_py.png" alt="python" width="400">
+</p>
+
 
 ### PyTorch 实现
 
-![](./assets/xor_solution_pth.png)
+
+<p align="center">
+  <img src="./assets/xor_solution_pth.png" alt="python" width="400">
+</p>
+
+
 
 两种实现的 MSE 损失都能降到很低的水平，决策边界都是把对角样本划为同一类的曲线，背景呈现清晰的蓝红分区。
 
