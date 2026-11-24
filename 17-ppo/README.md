@@ -863,11 +863,3 @@ A=G_t-V(s_t)
 ### 13.3 一句话收尾
 
 **好的局势与坏的局势 = 状态价值的高低。** 优势函数做的事，就是把"这个局面本来值多少"减掉，只留"这个动作额外挣到多少"。从 3.2 的动机、4.1 的推导，到 GAE 和 GRPO 的设计，都是这一句话的不同实现。
-
----
-
-## 参考文献
-
-- 论文：Schulman et al., *Proximal Policy Optimization Algorithms*, arXiv:1707.06347
-- 论文：Schulman et al., *High-Dimensional Continuous Control Using Generalized Advantage Estimation*, arXiv:1506.02438
-- 论文：Sutton & Barto, *Reinforcement Learning: An Introduction*（第 13 章策略梯度）
