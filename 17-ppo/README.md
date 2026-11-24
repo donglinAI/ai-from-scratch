@@ -257,7 +257,9 @@ $`\gamma`$ 的作用：越远的奖励权重指数衰减，等效于"缩短有�
 
 ### 3.2 改进二：减去基线
 
-![好的局势vs坏的局势](assets/good_bad_state.png)
+<p align="center">
+  <img src="assets/good_bad_state.png" alt="好的局势vs坏的局势" width="400">
+</p>
 
 
 **先看清问题：不是分数不够大，而是区分度不够。**
