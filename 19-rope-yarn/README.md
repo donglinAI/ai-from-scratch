@@ -357,11 +357,11 @@ python3 rope_llama3.py
 
 **对数横轴**：三段结构最清晰——第一段两线重合、第二段分离、第三段平行左移 $`\log_{10}8=0.903`$ 个数量级。
 
-![log f axis](./images/fig1_rope_dim_vs_f_log.png)
+![log f axis](./assets/fig1_rope_dim_vs_f_log.png)
 
 **线性横轴**：只剩前约 15 个维度可辨，$`i\ge 29`$ 全部贴到 $`x\approx 0`$。它直观地告诉你动态范围被最高的少数维度占满。
 
-![linear f axis](./images/fig2_rope_dim_vs_f_linear.png)
+![linear f axis](./assets/fig2_rope_dim_vs_f_linear.png)
 
 复现：
 

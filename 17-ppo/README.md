@@ -662,7 +662,7 @@ advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-8)
 ### 9.1 环境与依赖
 
 ```bash
-pip install torch gymnasium matplotlib
+pip install torch gymnasium matplotlib -i https://pypi.tuna.tsinghua.edu.cn/simple
 ```
 
 ### 9.2 训练
