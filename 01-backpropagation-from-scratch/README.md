@@ -1,8 +1,24 @@
-# 反向传播与自动微分
+# 手写反向传播与自动微分
+
+<table>
+  <tr>
+    <td align="center" width="50%">
+      <img src="./assets/xor_problem.png" width="100%" alt="XOR 问题">
+    </td>
+    <td align="center" width="50%">
+      <img src="./assets/xor_solution_py.png" width="100%" alt="XOR 解决办法">
+    </td>
+  </tr>
+  <tr>
+    <td align="center"><b>异或问题</b></td>
+    <td align="center"><b>解决办法</b></td>
+  </tr>
+</table>
+
 
 用纯 Python 手写一个标量自动微分引擎，再用它从零搭建 MLP 解决 XOR 问题；最后给出 PyTorch 对照实现，验证两者训练结果一致。
 
-本模块回答三个问题：计算图怎么建、梯度怎么沿图反向流、非线性层为什么必需。
+本文回答三个问题：计算图怎么建、梯度怎么沿图反向流、非线性层为什么必需。
 
 ## 核心实现
 
@@ -65,6 +81,8 @@ python xor_pytorch.py    # PyTorch 实现，2000 轮，lr=0.1
 依赖：`torch`、`numpy`、`matplotlib`。
 
 图片统一输出到 `assets/`：背景色是模型对网格上每个点的预测概率，两条黑线是 $`p=0.5`$ 的决策边界，四个圆点标注真实标签。
+
+因为随机数原因，不同环境、不同次运行结果可能不同，是正常的；
 
 ## 结果
 
