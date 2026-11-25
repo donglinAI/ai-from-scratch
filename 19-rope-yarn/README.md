@@ -7,7 +7,10 @@
 
 ---
 
-![log f axis](./assets/fig1_rope_dim_vs_f_log.png)
+<p align="center">
+  <img src="assets/fig1_rope_dim_vs_f_log.png" alt="log f axis" width="300">
+</p>
+
 
 ## 目录
 
