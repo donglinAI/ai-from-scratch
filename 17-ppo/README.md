@@ -4,7 +4,7 @@
 
 本文从强化学习的基本概念和符号讲起，先把策略梯度从目标函数推到可计算的形式，说明折扣回报、基线、优势函数这几步改动各自解决什么问题；再展开优势估计，从一步 TD 推到 GAE，讲清偏差与方差如何权衡；然后把梯度还原成损失函数，引入重要性采样，让旧数据可以复用，并用 clip 约束新旧策略的偏离，得到 PPO 最终的优化目标。推导给出完整的代数步骤，关键公式会标明哪一步是期望层面的等式、哪一步是单次采样的估计。
 
-最后是一份不依赖第三方 RL 库的单文件 PyTorch 实现，在 CartPole 上从零训练到满分，附带实测日志、学习曲线，以及调试过程中容易踩的坑和超参数建议。
+最后是一份不依赖第三方 RL 库的单文件 PyTorch 实现，直接对着 **LLM 的 RLHF 场景** 写：先 SFT 得到一个 61.8% 的初始策略，再用 Bradley–Terry 奖励模型打分，最后用 token 级 PPO（Actor-Critic + 对参考模型的 KL）把同一批题的准确率推到 74.5%，并给出 `rule / model / hybrid` 三种奖励的消融、实测日志与调参建议。
 
 ---
 
@@ -897,96 +897,147 @@ $`\varepsilon`$ 通常取 0.2。它的含义不是"惩罚偏离"，而是**偏�
 
 ## 8. 代码结构与逐段说明
 
-`ppo.py` 是单文件实现，约 300 行，无第三方强化学习框架，只依赖 `torch` 与 `gymnasium`。
+`ppo.py` 是单文件实现，只依赖 `torch`（绘图时额外用 `matplotlib`），不依赖任何强化学习框架，也不需要下载预训练模型。RLHF 的三步全部放在一个文件里：
 
 ```text
 ppo.py
-├── Config               超参数（dataclass，逐项注释）
-├── ActorCritic          共享主干 + 策略头 + 价值头
-├── RolloutBuffer        采样缓存（含 value_next 与 terminal）
-├── compute_gae          GAE 倒序递推
-├── ppo_update           截断目标 + 价值损失 + 熵奖励
-├── train                采样 → 多 epoch 更新 → 丢弃 → 评估
-└── plot_history         学习曲线与 KL 曲线
+├── Config                超参数（dataclass，逐项注释）
+├── ArithmeticTask        题库 + 规则校验（只用于评测与日志）
+├── PolicyLM              Actor-Critic：GRU 主干 + 策略头 + 价值头
+├── RewardModel           Bradley–Terry 奖励模型
+├── sft_pretrain          第①步：监督微调，得到初始策略
+├── train_reward_model    第②步：在策略自己的输出分布上训练打分器
+├── rollout_llm           采样回答 + 参考模型 KL + 奖励塑形
+├── compute_gae_token     token 级 GAE
+├── ppo_update            token 级 clip 目标 + 价值回归 + 熵正则
+└── train                 三步串起来 + 贪心评测
 ```
 
-### 8.1 网络：一个主干两个头
+> 原来的 CartPole 版本保留在同目录的 `ppo_cartpole_backup.py`，可以对照着看：clip 目标、GAE、价值回归这几块是一模一样的，变的只是"状态、动作、奖励从哪里来"。
+
+### 8.1 LLM 里的状态、动作、奖励分别是什​么
+
+| 概念 | CartPole | LLM（RLHF） |
+| --- | --- | --- |
+| 状态 $`s_t`$ | 4 维杆车状态 | prompt + 已经生成的前 $`t`$ 个 token |
+| 动作 $`a_t`$ | 左推 / 右推 | 下一个 token（本文件词表 13 个） |
+| 轨迹 | 一局游戏 | 一条完整回答 $`y=(a_1,\ldots,a_T)`$ |
+| 奖励 | 环境每步给 | 奖励模型对整条回答打一个分，**只在句末给一次** |
+| 额外约束 | 无 | 每个 token 上对参考模型的 KL 惩罚 |
+| 终止 | 杆倒下 / 到步数上限 | 吐出 EOS / 到最大长度 |
+
+一句话概括差异：**LLM 的 PPO 是"整句稀疏奖励 + 逐 token 稠密 KL"的信用分配问题**。这也是为什么价值网络和 token 级 GAE 在 RLHF 里不可省。
+
+### 8.2 Actor-Critic：一个主干两个头
 
 ```python
-class ActorCritic(nn.Module):
-    def forward(self, obs):
-        h = self.trunk(obs)                       # 共享特征
-        dist = torch.distributions.Categorical(logits=self.policy_head(h))
-        value = self.value_head(h).squeeze(-1)    # 标量 V(s)
-        return dist, value
+class PolicyLM(nn.Module):
+    def logprobs_values(self, prompt_ids, comp_ids, temperature=1.0):
+        ids = torch.cat([prompt_ids, comp_ids], dim=1)
+        out, _ = self.gru(self.emb(ids[:, :-1]))
+        out = out[:, prompt_ids.size(1) - 1 :, :]          # 从「最后一个 prompt token」之后开始
+        logits = self.head(out) / temperature
+        logp = torch.log_softmax(logits, dim=-1).gather(-1, comp_ids.unsqueeze(-1)).squeeze(-1)
+        values = self.value_head(out).squeeze(-1)          # V(s_t)：生成第 t 个 token 前的状态价值
+        return logp, ent, values
 ```
 
-两个细节是为了稳定：策略头用 `gain=0.01` 的正交初始化（初始策略接近均匀分布，不要一开始就过度自信）；价值头 `gain=1.0`。
+两个细节：
 
-### 8.2 采样：按分布采样，不取 argmax
+- 价值头和策略头共用同一条 GRU 主干，取的是**同一个隐状态**。因为 $`V(s_t)`$ 评估的就是"已经写了前 $`t`$ 个 token 的这条前缀"，和策略做决策时看到的状态完全一致。
+- 策略头用 `gain=0.01` 的正交初始化（初始策略接近均匀分布），价值头用常规增益。这一点和 CartPole 版完全一致。
+
+### 8.3 采样：old_logp 和 V(s_t) 必须一起存
 
 ```python
-def act(self, obs):
-    dist, value = self.forward(obs)
-    action = dist.sample()          # 采样，保留探索
-    logp = dist.log_prob(action)    # 记下旧策略的 log 概率，后面算 ratio 用
-    return action, logp, value
+@torch.no_grad()
+def sample(self, prompt_ids, max_new_tokens, temperature=1.0):
+    h = self.encode_prompt(prompt_ids)
+    for t in range(max_new_tokens):
+        logits = self.head_logits(h)
+        values[:, t] = self.head_value(h)        # 采样这一步之前的状态价值
+        dist = Categorical(logits=logits / temperature)
+        tok = dist.sample()
+        logps[:, t] = dist.log_prob(tok)         # 旧策略的 log 概率 → ratio 的分母
+        _, h = self.step(comp[:, t], h)
 ```
 
-**必须同时存 `logp` 和 `value`**：`logp` 是重要性采样比的分母，`value` 是 GAE 的起点。任何一项漏存，更新阶段就得重新前向一遍旧策略，非常容易埋 bug。
+**必须同时存 `old_logp` 和 `value`**：前者是重要性采样比的分母，后者是 GAE 的起点。任何一项漏存，更新阶段就得重跑一遍旧策略，很容易埋下"ratio 恒等于 1"这种隐形 bug。
 
-### 8.3 GAE：倒序递推一行搞定
+温度必须新旧一致：`old_logp` 是在 $`T`$ 温度下算的，更新时如果换了温度，ratio 就不再是同一个分布之间的比值，clip 的几何意义随之失效。
+
+### 8.4 奖励塑形：稀疏整句分 + 稠密 KL
 
 ```python
-for t in reversed(range(n)):
-    mask = 1.0 - terminals[t]
-    delta = rewards[t] + gamma * values_next[t] * mask - values[t]
-    last_adv = delta + gamma * lam * mask * last_adv
-    advantages[t] = last_adv
+kl_t = old_logp - ref_logp                       # 逐 token 的 KL（k1 形式，可正可负）
+token_rewards = -kl_coef * kl_t * mask
+
+outcome = rm_reward                              # 奖励模型对整条回答打分
+if reward_norm:                                  # 标准化，避免奖励量级压过 KL 项
+    outcome = (outcome - outcome.mean()) / (outcome.std() + 1e-6)
+token_rewards[rows, last_idx] += outcome          # 只在句末给一次
 ```
 
-对应公式
+对应 InstructGPT 的目标：
 
 ```math
-\delta_t=r_t+\gamma V(s_{t+1})(1-d_t)-V(s_t),\qquad
-A_t=\delta_t+\gamma\lambda(1-d_t)A_{t+1}
+r_t=-\beta\log\frac{\pi_\theta(a_t\mid s_t)}{\pi_{\text{ref}}(a_t\mid s_t)},\qquad
+r_T \mathrel{+}= r_\phi(x,y)
 ```
 
-$`(1-d_t)`$ 掩码是必须的：episode 结束后，$`s_{t+1}`$ 属于新的一局，**跨 episode 自举会把上一局的价值污染到下一局**，这是最常见的隐形 bug。
+直观理解：KL 项逐 token 计费，奖励模型只在最后结算一次。若不做这一步塑形，整条回答只有末位一个非零奖励，价值网络在 3~4 个 token 上几乎学不到东西。
 
-### 8.4 PPO 更新：ratio、clip、min
+### 8.5 token 级 GAE
 
 ```python
-log_ratio = new_logprobs - old_logprobs[mb]
+for t in reversed(range(L)):
+    next_mask = mask[:, t + 1] if t + 1 < L else 0
+    delta = rewards[:, t] + gamma * values[:, t + 1] * next_mask - values[:, t]
+    last = delta + gamma * lam * next_mask * last
+    adv[:, t] = last * mask[:, t]
+```
+
+对应公式和 CartPole 版是同一条：
+
+```math
+\delta_t=r_t+\gamma V(s_{t+1})m_{t+1}-V(s_t),\qquad
+A_t=\delta_t+\gamma\lambda\,m_{t+1}A_{t+1}
+```
+
+区别只在掩码的含义：这里的 $`m_t`$ 是 **EOS 掩码**，EOS 之后的位置不算损失、不算优势、不做自举。EOS 之后如果还继续自举，价值网络会把"回答已经结束"的状态污染进前面的 token，表现为 value loss 长期不降。
+
+### 8.6 PPO 更新：token 级 ratio 与 clip
+
+```python
+new_logp, ent, new_values = policy.logprobs_values(prompt_ids[mb], comp_ids[mb], cfg.temperature)
+log_ratio = new_logp - old_logp[mb]
 ratio = log_ratio.exp()
 
-surr1 = ratio * adv
-surr2 = torch.clamp(ratio, 1 - clip_eps, 1 + clip_eps) * adv
-policy_loss = -torch.min(surr1, surr2).mean()
+obj = torch.min(ratio * adv, torch.clamp(ratio, 1 - eps, 1 + eps) * adv) * mask
+policy_loss = -(obj.sum() / mask.sum())                       # 按有效 token 数归一化
 
-value_loss = F.mse_loss(new_values, returns[mb])
+value_loss = (((new_values - returns[mb]) ** 2) * mask).sum() / mask.sum()
 loss = policy_loss + value_coef * value_loss - entropy_coef * entropy
 ```
 
-用 `log_prob` 之差再 `exp`，比直接 `new_probs / old_probs` 数值稳定得多（避免除零和极端比值）。
+三处和 CartPole 版不同、但很关键：
 
-### 8.5 近似 KL 早停
+1. **归一化按 token 而不是按序列**。回答长短不一，按序列平均会让长回答的梯度被稀释。
+2. **熵按 token 平均**。LLM 的熵是每个位置一个分布，不是一步一个动作。
+3. **价值损失也带掩码**。EOS 之后的位置没有真实回报，必须排除。
 
-```python
-approx_kl = ((ratio - 1.0) - log_ratio).mean().item()
-if approx_kl > target_kl:
-    break
-```
-
-这个估计量恒非负、无偏，是 PPO 论文附录里的推荐做法。它让"同一批数据训练 10 个 epoch"变成自适应：偏离一大就提前收手，避免第 8、9 个 epoch 把策略带偏。
-
-### 8.6 优势标准化
+### 8.7 KL 早停与优势标准化
 
 ```python
-advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-8)
+approx_kl = (((ratio - 1.0) - log_ratio) * mask).sum() / mask.sum()
+if approx_kl > target_kl: break
+
+mean = (adv * mask).sum() / mask.sum()
+std = (((adv - mean) ** 2) * mask).sum() / mask.sum()
+adv = ((adv - mean) / (std.sqrt() + 1e-8)) * mask
 ```
 
-和 GRPO 的组内 Z-score 是同一个思想：让优势变成"零均值、单位标准差"的可比分差，避免不同批次奖励尺度变化导致步长忽大忽小。
+`((r-1) - log r)` 恒非负、无偏，是 PPO 论文附录推荐的 KL 估计。优势标准化和 GRPO 的组内 Z-score 是同一个思想：把"这批信号比平均好多少"变成零均值、单位标准差的可比量，否则奖励模型的分数量级一变，等价于学习率在乱跳。
 
 ---
 
@@ -995,93 +1046,121 @@ advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-8)
 ### 9.1 环境与依赖
 
 ```bash
-pip install torch gymnasium matplotlib
+pip install torch matplotlib   # matplotlib 只在 --plot 时需要
 ```
+
+不需要 `gymnasium`，不需要下载任何预训练权重，CPU 即可跑完。
 
 ### 9.2 训练
 
 ```bash
-# 默认：CartPole-v1，150 轮更新，每轮 2048 步
+# 默认：SFT 300 步 → 奖励模型 600 步 → PPO 300 轮，CPU 约 1 分钟
 python ppo.py
 
-# 指定轮数并导出学习曲线
-python ppo.py --updates 150 --plot assets/learning_curve.png
+# 导出学习曲线
+python ppo.py --plot assets/learning_curve_llm.png
+
+# 只跑数值断言（不训练）
+python ppo.py --selftest
+
+# 消融：换奖励来源
+python ppo.py --reward rule     # 用可验证规则替代奖励模型（上界参考）
+python ppo.py --reward model    # 纯奖励模型（RLHF 标准形态）
 ```
 
-预期日志（本机 CPU 实测）：
+实测日志（本机 CPU，`--reward hybrid` 默认配置）：
 
 ```text
-[upd    1] ep_ret=   22.2  pi_loss=-0.017  v_loss=52.374  ent=0.686  kl=0.0070  clip=10.0%
-[upd   10] ep_ret=   90.7  pi_loss=+0.010  v_loss=95.567  ent=0.605  kl=0.0156  clip=8.1%
-    -> eval greedy reward = 123.0  (elapsed 4.9s)
-[upd   20] ep_ret=  131.0  pi_loss=-0.001  v_loss=119.218  ent=0.576  kl=0.0161  clip=13.4%
-    -> eval greedy reward = 389.0  (elapsed 9.4s)
-[upd   60] -> eval greedy reward = 500.0  (elapsed 26.7s)
-Solved in 60 updates (threshold=475.0).
+[sft done] greedy exact on all 55 problems = 61.8%
+           (SFT 只见过 33 道题，其余靠 RL 泛化)
+[rm   600] bt_loss=0.0013  gold>wrong=100.0%  margin=+16.298
+[iter   30] rm=+1.579  rule=0.531  exact= 42.2%  well= 96.9%  kl=0.1845  ent=0.542  clip= 0.0%  v_loss=0.677
+[iter   90] rm=+3.195  rule=0.631  exact= 54.7%  well= 96.9%  kl=0.3083  ent=0.543  clip= 0.0%  v_loss=0.697
+    -> greedy exact on all 55 problems = 69.1%  (elapsed 16.5s)
+[iter  180] rm=+3.461  rule=0.659  exact= 57.8%  well= 98.4%  kl=0.2273  ent=0.466  clip= 0.0%  v_loss=0.548
+    -> greedy exact on all 55 problems = 74.5%  (elapsed 18.0s)
+[iter  300] rm=+2.974  rule=0.688  exact= 60.9%  well=100.0%  kl=0.1783  ent=0.389  clip= 0.0%  v_loss=0.368
+final: greedy exact 61.8% → 74.5%  (baseline SFT → after PPO)
 ```
 
-`ep_ret` 是这一轮里完成的对局平均回报，`clip` 是被截断的样本比例——它稳定在 5%~15% 说明 $`\varepsilon=0.2`$ 这个区间选得合适；如果长期接近 0，说明更新幅度太小、可以调大学习率；如果长期高于 40%，说明策略被推得太狠，该降学习率或缩小 epoch 数。
+三个指标值得盯：
 
-![learning curve](assets/learning_curve.png)
+- `exact`：这一批采样回答里完全答对的比例。它比贪心评测更能反映探索状态。
+- `kl`：策略和参考模型的逐 token KL。稳定在 0.1~0.3 说明 KL 约束在起作用；一路冲到 1 以上通常意味着策略在钻奖励模型的空子。
+- `clip`：被截断的 token 比例。长期 0 说明更新太保守，长期高于 20% 说明步子太大。
 
-左图是每轮更新里完成对局的平均回报，右图是每轮更新的近似 KL。KL 全程被压在 `target_kl` 附近，正是 clip 与早停共同起作用的表现。
+![learning curve](assets/learning_curve_llm.png)
 
-### 9.3 关键超参
+左图是采样准确率与格式合规率，中图是奖励模型分与规则分，右图是 KL。规则分和奖励模型分同向上升、KL 没爆，是"奖励模型没有被攻击"的直接信号。
+
+### 9.3 奖励来源消融
+
+| `--reward` | SFT 基线 | PPO 之后 | 现象 |
+| --- | --- | --- | --- |
+| `rule` | 61.8% | **87.3%** | 可验证奖励，信号最干净，作为上限参考 |
+| `model` | 61.8% | 74.5% | 纯奖励模型，RLHF 的标准形态 |
+| `hybrid` | 61.8% | 74.5% | 奖励模型分 + 答对奖励，默认配置，最稳 |
+
+奖励模型分和规则分不一致时，差值就是"奖励攻击"的空间。本仓库的玩具规模下，奖励模型只学到一个 128 维的 GRU，纯用它训练会明显弱于规则奖励——这正是真实 RLHF 里要花大力气做奖励模型、还要用 KL 牵住策略的原因。
+
+### 9.4 关键超参
 
 | 参数 | 默认值 | 作用 | 调大 / 调小的后果 |
 | --- | --- | --- | --- |
-| `gamma` | 0.99 | 折扣因子 | 调小更短视，收敛快但可能学不到长期策略 |
-| `lam` | 0.95 | GAE 的 $`\lambda`$ | 调小方差低、偏差高；调大反之 |
-| `clip_eps` | 0.2 | 截断范围 | 调小更新保守、学得慢；调大易崩 |
-| `epochs` | 10 | 每批数据重复训练轮数 | 调大样本效率高但易过拟合当前批次 |
-| `lr` | 3e-4 | 学习率 | PPO 对学习率比较敏感，翻倍常直接崩 |
-| `entropy_coef` | 0.01 | 熵奖励 | 调大探索多、收敛慢；调小易早熟塌缩 |
-| `rollout_steps` | 2048 | 每批采样步数 | 太小时 GAE 估计方差大 |
+| `sft_steps` | 300 | SFT 步数 | 太多会把题背下来，PPO 没有提升空间 |
+| `train_ratio` | 0.6 | SFT 见过的题目比例 | 调小泛化难度更高，RL 的作用更明显 |
+| `rm_steps` | 600 | 奖励模型训练步数 | 太少则打分器分不清对错，PPO 直接崩 |
+| `kl_coef` | 0.02 | KL 惩罚 $`\beta`$ | 调小策略跑得远、易攻击奖励模型；调大则学不动 |
+| `clip_eps` | 0.2 | ratio 截断范围 | 同上，两者都在限制单次更新幅度 |
+| `gamma` | 1.0 | 折扣因子 | LLM 里整句算一个回合，通常不折扣 |
+| `lam` | 0.95 | GAE 的 $`\lambda`$ | 调小偏差大、方差小；调大反之 |
+| `lr` | 1e-4 | 学习率 | 这类小模型上 5e-4 就会明显震荡 |
+| `entropy_coef` | 0.01 | 熵奖励 | 调小会早熟塌缩，回答多样性归零 |
+| `target_kl` | 0.03 | 早停阈值 | 调小更保守，样本效率下降 |
 
-### 9.4 评测
+### 9.5 数值自检
 
-训练中每 `eval_interval` 轮用贪心策略跑 5 局，最优模型存为 `ppo_best.pt`：
-
-```python
-ckpt = torch.load("ppo_best.pt")
-model = ActorCritic(ckpt["obs_dim"], ckpt["act_dim"])
-model.load_state_dict(ckpt["model"])
-```
+`python ppo.py --selftest` 会跑 8 条断言，不训练也能验证公式和实现是否对齐：token 级 GAE 手算、掩码位置优势为零、clip 在比值 1 处梯度等于优势、KL(k3) 恒非负、采样记录与 teacher forcing 重算一致、奖励塑形落点正确、Bradley–Terry 的方向性。
 
 ---
 
 ## 10. 常见坑与调参建议
 
-1. **采样用 argmax。** 分布退化成确定性策略，重要性采样比恒为 1，clip 完全失效，学不到东西。
-2. **忘记 `(1-done)` 掩码。** 跨 episode 自举，价值估计被系统性污染，表现为 value loss 长期不降。
-3. **把 truncated 当 terminated。** 时间上限截断并不代表状态终止，应当继续自举；本实现里 `terminal` 只存 `terminated`。
-4. **优势不标准化。** 奖励尺度一批一变，等价于学习率在乱跳。
-5. **ratio 用概率直接相除。** 旧概率可能极小，数值不稳，务必用 `exp(logp_new - logp_old)`。
-6. **KL 惩罚与 clip 同时开很大。** 两者都在限制更新，叠加后学不动；主流做法是 clip 为主，KL 只用于监控或早停。
-7. **模型不评估就宣布收敛。** 训练回报含探索噪声，必须用贪心策略单独评测。
+1. **拿 argmax 采样。** 分布退化成确定性策略，ratio 恒为 1，clip 完全失效，等于在做 SFT。
+2. **只给句末一个奖励、不做 KL 塑形。** 3~4 个 token 的轨迹上只有末位非零，价值网络几乎无从学习，GAE 退化成整句同一个优势。
+3. **忘记 EOS 掩码。** EOS 之后仍参与损失和自举，价值会被"已经结束"的状态污染，表现为 value loss 长期不降。
+4. **按序列平均损失。** 长短回答混在一起时，长回答的 token 梯度被稀释；应当按有效 token 数归一化。
+5. **新旧策略用了不同温度。** ratio 不再是同一分布之间的比值，clip 的几何意义失效，训练会莫名震荡。
+6. **奖励模型训练分布和策略分布不一致。** 只用"标准答案 vs 构造错误"训练，PPO 一旦采样出训练分布外的回答，就能精准找到打分器的盲区——这就是奖励攻击。本文件的奖励模型是在策略采样上做比较的。
+7. **奖励模型标签有噪声。** 负例里混进了策略自己答对的回答，Bradley–Terry 会直接学成噪声。
+8. **奖励量级远大于 KL 项。** 奖励模型分是 ±10、KL 惩罚只有 0.02×1，β 形同虚设，策略必然跑飞。要对结果奖励做标准化。
+9. **优势不标准化。** 奖励尺度一批一变，等价于学习率在乱跳。
+10. **只看训练回报、不做贪心评测。** 采样准确率含探索噪声，必须单独用贪心解码在全题库上评一次。
 
 ---
 
 ## 11. 与 GRPO 的对照
 
-PPO 是大模型 RLHF 的经典底座，GRPO 是它在"无 Critic"方向上的一次简化：
+PPO 是 RLHF 的经典底座，GRPO 是它在"无 Critic"方向上的一次简化。两个文件用的是同一套题库、同一个字符级 GRU、同一套 token 级 clip 目标，可以直接对照：
 
-| 维度 | PPO | GRPO |
+| 维度 | PPO（本目录） | GRPO（`18-grpo`） |
 | --- | --- | --- |
-| 网络 | Actor + Critic | 只有 Actor |
-| 优势来源 | GAE（Critic 估 $`V`$） | 同一 prompt 下 G 条回答的组内 Z-score |
-| 优势粒度 | 每步一个 $`A_t`$ | 每条轨迹一个 $`A_i`$，全轨迹共享 |
-| 约束 | clip（$`\varepsilon`$）+ 可选 KL | clip + KL（对参考模型） |
-| 样本要求 | 可逐步奖励 | 只需轨迹级最终奖励 |
-| 典型场景 | 游戏控制、传统 RLHF | 数学 / 推理类可验证任务 |
+| 网络 | Actor + Critic（价值头） | 只有 Actor |
+| 优势来源 | token 级 GAE（Critic 估 $`V(s_t)`$） | 同一 prompt 下 G 条回答的组内 Z-score |
+| 优势粒度 | 每个 token 一个 $`A_t`$ | 每条轨迹一个 $`A_i`$，全轨迹共享 |
+| 奖励 | 奖励模型（可选规则 / 混合），句末一次 | 规则验证器，组内相对比较 |
+| 参考模型 KL | 逐 token 进奖励塑形 | 进损失（k3） |
+| 每个 prompt 采几条 | 1 条即可，靠 Critic 当基线 | 必须 G 条，靠组内均值当基线 |
+| 显存 / 计算 | 多一份 Critic | 省掉 Critic，但要多采样 |
+| 典型场景 | 通用对齐（RLHF/PPO） | 数学、代码等可验证任务 |
 
-两者策略项的骨架完全一致，都是
+两者策略项骨架完全一致：
 
 ```math
 -\min\left(r_tA_t,\;\mathrm{clip}(r_t,1-\varepsilon,1+\varepsilon)A_t\right)
 ```
 
-差别只在"$`A`$ 从哪来"。理解了 PPO 的 clip，GRPO 只剩优势估计那一处替换。
+差别只在"$`A`$ 从哪来"：PPO 用 Critic 沿 token 时间轴做 GAE，GRPO 用同一个 prompt 的组内相对分。理解了 PPO 的 clip 和 GAE，GRPO 只剩下"把 GAE 换成组内归一化"这一处替换。
 
 ---
 
