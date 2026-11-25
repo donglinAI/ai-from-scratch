@@ -1,5 +1,5 @@
 """
-Llama-3.1 RoPE yarn scaling -- dimension vs frequency plots.
+Llama-3.1 RoPE -- dimension vs frequency plots.
 
 Configuration being visualised:
     head_dim d = 128, rope_theta = 500000, factor alpha = 8,
@@ -35,7 +35,7 @@ LAM_HIGH = L_ORIG / HIGH                # 2048 -> keep-unchanged branch
 
 
 def llama3_scaled(f, lam, factor=FACTOR, low=LOW, high=HIGH, l_orig=L_ORIG):
-    """Llama-3 yarn scaling; returns (f', s, k)."""
+    """Llama-3 RoPE returns (f', s, k)."""
     f_scaled = np.empty_like(f)
     s_out = np.zeros_like(f)
     k_out = np.ones_like(f)
@@ -117,7 +117,7 @@ ax.annotate("seam i = 34 -> 35\nf ratio 1.868  (elsewhere 1.228)",
             arrowprops=dict(arrowstyle="->", lw=1.0, color="0.45", shrinkB=4))
 
 ax.legend(loc="lower right", fontsize=10, frameon=True, framealpha=0.95)
-ax.set_title(r"Yarn Scaling:  $f_i$ across dimensions  (log $f$ axis)",
+ax.set_title(r"$f_i$ across dimensions  (log $f$ axis)",
              fontsize=13, fontweight="bold", pad=10)
 fig.text(0.5, 0.008,
          "alpha=8, low_freq_factor=1, high_freq_factor=4, "
