@@ -5,11 +5,12 @@
 
 **一句话结论**：缩放**不增加频率槽位的数量**（恒为 $`d_{\mathrm{head}}/2=64`$），它把低频槽位的角频率除以 $`\alpha`$，把中频槽位在“除以 $`\alpha`$”与“保持不变”之间做凸组合，高频槽位完全不动，让 128k 位置上的相位组合重新落回训练分布内。
 
----
 
 <p align="center">
-  <img src="assets/fig1_rope_dim_vs_f_log.png" alt="log f axis" width="300">
+  <img src="assets/fig1_rope_dim_vs_f_log.png" alt="log f axis" width="400">
 </p>
+
+---
 
 
 ## 目录
