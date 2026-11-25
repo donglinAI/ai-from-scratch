@@ -1,4 +1,4 @@
-# Llama-3.1 三段式旋转位置编码（Three-Segment RoPE Scaling）
+# Llama-3.1 三段式旋转位置编码（Yarn Scaling）
 
 > 用一份**最小可运行的 PyTorch 实现**，把 Llama-3.1 用来从 **8192(8K)** 训练上下文扩展到 **131072(128K)** 上下文的
 > `rope_type = "llama3"` 频率缩放规则看清：三段怎么分、插值权重怎么算、每个超参管什么、以及它到底改变了什么。
