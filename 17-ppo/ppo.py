@@ -1,12 +1,10 @@
 """
 PPO for LLMs —— RLHF 中 PPO 的从零实现，单文件可运行。
 
-和 CartPole 版 PPO 的区别不在 clip，而在"状态、动作、奖励从哪来"：
-    CartPole       : 状态 = 4 维物理量，动作 = 左右推，奖励 = 环境每步给
-    LLM (RLHF)     : 状态 = prompt + 已生成的 token 前缀
-                     动作 = 下一个 token（词表大小 13）
-                     奖励 = 奖励模型给整条回答打分（只有句末一个稀疏奖励）
-                            + 每个 token 上对参考模型的 KL 惩罚
+LLM (RLHF)     : 状态 = prompt + 已生成的 token 前缀
+                    动作 = 下一个 token（词表大小 13）
+                    奖励 = 奖励模型给整条回答打分（只有句末一个稀疏奖励）
+                        + 每个 token 上对参考模型的 KL 惩罚
 
 这也是 InstructGPT 那一套三步流程，本文件把三步都实现出来：
     ① SFT        : 监督微调，得到初始策略 π_SFT（同时作为参考模型 π_ref 冻结）

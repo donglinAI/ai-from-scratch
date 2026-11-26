@@ -1089,7 +1089,7 @@ final: greedy exact 61.8% → 74.5%  (baseline SFT → after PPO)
 - `kl`：策略和参考模型的逐 token KL。稳定在 0.1~0.3 说明 KL 约束在起作用；一路冲到 1 以上通常意味着策略在钻奖励模型的空子。
 - `clip`：被截断的 token 比例。长期 0 说明更新太保守，长期高于 20% 说明步子太大。
 
-![learning curve](assets/learning_curve_llm.png)
+![learning curve](assets/learning_curve.png)
 
 左图是采样准确率与格式合规率，中图是奖励模型分与规则分，右图是 KL。规则分和奖励模型分同向上升、KL 没爆，是"奖励模型没有被攻击"的直接信号。
 
